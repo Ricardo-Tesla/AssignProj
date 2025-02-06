@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function Dashboard({ user, setIsAuthenticated }) {
   const [protectedData, setProtectedData] = useState('');
@@ -25,6 +25,10 @@ function Dashboard({ user, setIsAuthenticated }) {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
   };
+
+  if (!user) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-md w-96">
