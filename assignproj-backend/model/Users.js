@@ -21,10 +21,14 @@ const User = sequelize.define('User', {
       const hash = bcrypt.hashSync(value, salt);
       this.setDataValue('password', hash);
     }
+  },
+  isAdmin: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false // Only professors will have this as true
   }
 }, {
-  tableName: 'Users', // Explicitly set table name
-  timestamps: false // Disable timestamps if not needed
+  tableName: 'Users',
+  timestamps: false
 });
 
 module.exports = User;
