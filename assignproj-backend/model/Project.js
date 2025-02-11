@@ -14,10 +14,16 @@ const Project = sequelize.define('Project', {
   description: {
     type: DataTypes.TEXT,
     allowNull: false
+  },
+  deadline: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  maxStudents: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 4
   }
-}, {
-  tableName: 'projects', // Explicit table name
-  timestamps: true // Enables createdAt and updatedAt timestamps
 });
 
 module.exports = Project;
