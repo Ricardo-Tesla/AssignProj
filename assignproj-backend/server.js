@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { Project, Group, GroupMember, User } = require('./model/Associations');
+const { Project, Group, GroupMember, User, Task } = require('./model/Associations');
 const sequelize = require('./config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -172,7 +172,6 @@ app.post('/api/projects', authenticateToken, async (req, res) => {
 });
 
 // Group creation route
-// Modified group creation route
 app.post('/api/projects/:projectId/groups', authenticateToken, async (req, res) => {
   const { projectId } = req.params;
   const { teamLeaderId, name, memberIds = [] } = req.body;  // Added memberIds array with default empty array
@@ -247,11 +246,11 @@ app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) =
     const groups = await Group.findAll({
       where: { projectId },
       include: [
-        { 
-          model: User, 
+        {
+          model: User,
           as: 'teamLeader',
           attributes: ['username'] // Only include username field
-        }, 
+        },
         {
           model: GroupMember,
           include: [{
@@ -366,6 +365,220 @@ app.put('/api/projects/:projectId/groups/:groupId', authenticateToken, async (re
   }
 });
 
+
+// Middleware to check if user is team leader of the group
+const isTeamLeader = async (req, res, next) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const group = await Group.findOne({
+      where: {
+        id: groupId,
+        teamLeaderId: userId
+      }
+    });
+
+    if (!group) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only team leaders can perform this action.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// Create a new task
+app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (req, res) => {
+  const { groupId } = req.params;
+  const { title, description, assignedToId, dueDate } = req.body;
+
+  try {
+    // Verify that assignedTo user is a member of the group
+    const groupMember = await GroupMember.findOne({
+      where: {
+        groupId,
+        userId: assignedToId
+      }
+    });
+
+    if (!groupMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assigned user is not a member of this group'
+      });
+    }
+
+    const task = await Task.create({
+      groupId,
+      assignedToId,
+      title,
+      description,
+      dueDate
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Task created successfully',
+      data: task
+    });
+  } catch (error) {
+    console.error('Task creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get all tasks for a group
+app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Check if user is either team leader or member of the group
+    const isGroupMember = await GroupMember.findOne({
+      where: { groupId, userId }
+    });
+
+    const group = await Group.findOne({
+      where: { id: groupId }
+    });
+
+    if (!isGroupMember && group.teamLeaderId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You must be a group member or team leader to view tasks.'
+      });
+    }
+
+    const tasks = await Task.findAll({
+      where: { groupId },
+      include: [{
+        model: User,
+        as: 'assignedTo',
+        attributes: ['username']
+      }]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: tasks
+    });
+  } catch (error) {
+    console.error('Error retrieving tasks:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Update a task
+app.put('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader, async (req, res) => {
+  const { groupId, taskId } = req.params;
+  const { title, description, assignedToId, status, dueDate } = req.body;
+
+  try {
+    const task = await Task.findOne({
+      where: {
+        id: taskId,
+        groupId
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    if (assignedToId) {
+      // Verify that new assignedTo user is a member of the group
+      const groupMember = await GroupMember.findOne({
+        where: {
+          groupId,
+          userId: assignedToId
+        }
+      });
+
+      if (!groupMember) {
+        return res.status(400).json({
+          success: false,
+          message: 'Assigned user is not a member of this group'
+        });
+      }
+    }
+
+    await task.update({
+      title: title || task.title,
+      description: description || task.description,
+      assignedToId: assignedToId || task.assignedToId,
+      status: status || task.status,
+      dueDate: dueDate || task.dueDate
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Task updated successfully',
+      data: task
+    });
+  } catch (error) {
+    console.error('Task update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Delete a task
+app.delete('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader, async (req, res) => {
+  const { groupId, taskId } = req.params;
+
+  try {
+    const task = await Task.findOne({
+      where: {
+        id: taskId,
+        groupId
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    await task.destroy();
+
+    res.status(200).json({
+      success: true,
+      message: 'Task deleted successfully'
+    });
+  } catch (error) {
+    console.error('Task deletion error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
 
 // Start the server
 const startServer = async () => {
