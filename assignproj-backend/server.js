@@ -1,9 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-const { Project, Group, GroupMember, User, Task } = require('./model/Associations');
+const { Project, Group, GroupMember, User, Task, Notification } = require('./model/Associations');
 const sequelize = require('./config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { createNotification } = require('./utils/createNotification.js'); 
 
 const app = express();
 
@@ -396,49 +397,60 @@ const isTeamLeader = async (req, res, next) => {
   }
 };
 
-// Create a new task
+// Modify the task creation route to include notifications
 app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (req, res) => {
   const { groupId } = req.params;
   const { title, description, assignedToId, dueDate } = req.body;
 
   try {
-    // Verify that assignedTo user is a member of the group
-    const groupMember = await GroupMember.findOne({
-      where: {
-        groupId,
-        userId: assignedToId
-      }
-    });
-
-    if (!groupMember) {
-      return res.status(400).json({
-        success: false,
-        message: 'Assigned user is not a member of this group'
+    const result = await sequelize.transaction(async (t) => {
+      // Verify that assignedTo user is a member of the group
+      const groupMember = await GroupMember.findOne({
+        where: {
+          groupId,
+          userId: assignedToId
+        }
       });
-    }
 
-    const task = await Task.create({
-      groupId,
-      assignedToId,
-      title,
-      description,
-      dueDate
+      if (!groupMember) {
+        throw new Error('Assigned user is not a member of this group');
+      }
+
+      const task = await Task.create({
+        groupId,
+        assignedToId,
+        title,
+        description,
+        dueDate
+      }, { transaction: t });
+
+      // Create notification for assigned user
+      await createNotification(
+        'task',
+        `You have been assigned a new task: ${title}`,
+        assignedToId,
+        groupId,
+        task.id,
+        t
+      );
+
+      return task;
     });
 
     res.status(201).json({
       success: true,
       message: 'Task created successfully',
-      data: task
+      data: result
     });
   } catch (error) {
     console.error('Task creation error:', error);
-    res.status(500).json({
+    res.status(error.message.includes('not a member') ? 400 : 500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: error.message || 'Server error'
     });
   }
 });
+
 
 // Get all tasks for a group
 app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
@@ -579,6 +591,193 @@ app.delete('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader
     });
   }
 });
+
+
+// Send group notification (admin/professor only)
+app.post('/api/groups/:groupId/notifications', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const { message } = req.body;
+
+  if (!req.user.isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: 'Only professors can send group notifications'
+    });
+  }
+
+  try {
+    const result = await sequelize.transaction(async (t) => {
+      // Verify group exists
+      const group = await Group.findByPk(groupId);
+      if (!group) {
+        throw new Error('Group not found');
+      }
+
+      // Get all group members including team leader
+      const groupMembers = await GroupMember.findAll({
+        where: { groupId },
+        transaction: t
+      });
+
+      // Add team leader to notification recipients
+      const allRecipients = [...groupMembers, { userId: group.teamLeaderId }];
+
+      // Create notifications for all members
+      const notifications = await Promise.all(
+        allRecipients.map(member =>
+          createNotification('group', message, member.userId, groupId, null, t, req.user.id)  // Pass createdBy
+        )
+      );
+
+      return notifications;
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Group notification sent successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Group notification error:', error);
+    res.status(error.message.includes('not found') ? 404 : 500).json({
+      success: false,
+      message: error.message || 'Server error'
+    });
+  }
+});
+
+
+// Get user's notifications
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.findAll({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: Task,
+          attributes: ['title', 'description', 'dueDate']
+        },
+        {
+          model: Group,
+          attributes: ['name']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: notifications
+    });
+  } catch (error) {
+    console.error('Error retrieving notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get notifications created by admin users
+app.get('/api/admin/sent-notifications', authenticateToken, async (req, res) => {
+  try {
+    // First check if the requesting user is an admin
+    if (!req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Build filter conditions
+    let whereClause = {
+      createdBy: req.user.id  // This assumes your Notification model has a createdBy field
+    };
+    
+    // Optional filters
+    const { userId, groupId, type } = req.query;
+    if (userId) whereClause.userId = userId;
+    if (groupId) whereClause.groupId = groupId;
+    if (type) whereClause.type = type;
+    
+    // Build includes for related models
+    const includeModels = [
+      {
+        model: Task,
+        attributes: ['title', 'description', 'dueDate']
+      },
+      {
+        model: Group,
+        attributes: ['name']
+      },
+      {
+        model: User,
+        as: 'Recipient',  // Assuming you have an alias for the recipient relationship
+        attributes: ['username']  // Removed 'email' field
+      }
+    ];
+    
+    // Get notifications
+    const notifications = await Notification.findAll({
+      where: whereClause,
+      include: includeModels,
+      order: [['createdAt', 'DESC']]
+    });
+    
+    res.status(200).json({
+      success: true,
+      count: notifications.length,
+      data: notifications
+    });
+    
+  } catch (error) {
+    console.error('Error retrieving admin sent notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+
+// Mark notification as read
+app.patch('/api/notifications/:notificationId', authenticateToken, async (req, res) => {
+  const { notificationId } = req.params;
+
+  try {
+    const notification = await Notification.findOne({
+      where: {
+        id: notificationId,
+        userId: req.user.id
+      }
+    });
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    await notification.update({ isRead: true });
+
+    res.status(200).json({
+      success: true,
+      message: 'Notification marked as read',
+      data: notification
+    });
+  } catch (error) {
+    console.error('Error updating notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 
 // Start the server
 const startServer = async () => {
