@@ -1,10 +1,14 @@
 const express = require('express');
 const cors = require('cors');
-const { Project, Group, GroupMember, User, Task, Notification } = require('./model/Associations');
+const { Project, Group, GroupMember, User, Task, Notification, Message, Submission } = require('./model/Associations');
 const sequelize = require('./config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { createNotification } = require('./utils/createNotification.js'); 
+const upload = require('./config/multer');
+const fs = require('fs');
+const path = require('path');
+
 
 const app = express();
 
@@ -777,6 +781,417 @@ app.patch('/api/notifications/:notificationId', authenticateToken, async (req, r
     });
   }
 });
+
+// Chat routes
+app.post('/api/groups/:groupId/messages', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const { content } = req.body;
+  const senderId = req.user.id;
+
+  try {
+    // Check if user is a member of the group or team leader
+    const isGroupMember = await GroupMember.findOne({
+      where: { groupId, userId: senderId }
+    });
+
+    const group = await Group.findOne({
+      where: { id: groupId }
+    });
+
+    if (!isGroupMember && group.teamLeaderId !== senderId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only group members can send messages'
+      });
+    }
+
+    // Create the message
+    const message = await Message.create({
+      content,
+      groupId,
+      senderId,
+      timestamp: new Date()
+    });
+
+    // Fetch the created message with sender information
+    const messageWithSender = await Message.findOne({
+      where: { id: message.id },
+      include: [{
+        model: User,
+        as: 'sender',
+        attributes: ['username']
+      }]
+    });
+
+    // Create notifications for all group members except sender
+    const groupMembers = await GroupMember.findAll({
+      where: { groupId }
+    });
+
+    // Include team leader in recipients if not the sender
+    const allRecipients = [...groupMembers];
+    if (group.teamLeaderId !== senderId) {
+      allRecipients.push({ userId: group.teamLeaderId });
+    }
+
+    // Filter out the sender
+    const recipients = allRecipients.filter(member => member.userId !== senderId);
+
+    // Create notifications
+    await Promise.all(
+      recipients.map(member =>
+        createNotification(
+          'chat',
+          `New message in group chat`,
+          member.userId,
+          groupId,
+          null
+        )
+      )
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Message sent successfully',
+      data: messageWithSender
+    });
+  } catch (error) {
+    console.error('Message sending error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Get messages for a group
+app.get('/api/groups/:groupId/messages', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+  const { limit = 50, before } = req.query; // Pagination parameters
+
+  try {
+    // Check if user is a member of the group or team leader
+    const isGroupMember = await GroupMember.findOne({
+      where: { groupId, userId }
+    });
+
+    const group = await Group.findOne({
+      where: { id: groupId }
+    });
+
+    if (!isGroupMember && group.teamLeaderId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only group members can view messages'
+      });
+    }
+
+    // Build query conditions
+    const whereConditions = {
+      groupId
+    };
+
+    if (before) {
+      whereConditions.timestamp = {
+        [Op.lt]: new Date(before)
+      };
+    }
+
+    // Fetch messages with sender information
+    const messages = await Message.findAll({
+      where: whereConditions,
+      include: [{
+        model: User,
+        as: 'sender',
+        attributes: ['username']
+      }],
+      order: [['timestamp', 'DESC']],
+      limit: parseInt(limit)
+    });
+
+    res.status(200).json({
+      success: true,
+      data: messages
+    });
+  } catch (error) {
+    console.error('Error retrieving messages:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Delete a message (only sender can delete their own messages)
+app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, async (req, res) => {
+  const { groupId, messageId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const message = await Message.findOne({
+      where: {
+        id: messageId,
+        groupId,
+        senderId: userId
+      }
+    });
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found or you are not authorized to delete it'
+      });
+    }
+
+    await message.destroy();
+
+    res.status(200).json({
+      success: true,
+      message: 'Message deleted successfully'
+    });
+  } catch (error) {
+    console.error('Message deletion error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+
+
+// Submit a file for a task
+app.post('/api/tasks/:taskId/submissions', 
+  authenticateToken, 
+  upload.single('file'), 
+  async (req, res) => {
+    const { taskId } = req.params;
+    const { comments } = req.body;
+    const submitterId = req.user.id;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    try {
+      // Check if task exists and get its details
+      const task = await Task.findOne({
+        where: { id: taskId },
+        include: [{ model: Group }]
+      });
+
+      if (!task) {
+        return res.status(404).json({
+          success: false,
+          message: 'Task not found'
+        });
+      }
+
+      // Check if user is a member of the group
+      const isGroupMember = await GroupMember.findOne({
+        where: { 
+          groupId: task.Group.id, 
+          userId: submitterId 
+        }
+      });
+
+      if (!isGroupMember && task.Group.teamLeaderId !== submitterId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only group members can submit files'
+        });
+      }
+
+      // Check if submission is late
+      const isLate = new Date() > new Date(task.dueDate);
+
+      // Create submission record
+      const submission = await Submission.create({
+        taskId,
+        submitterId,
+        fileName: req.file.originalname,
+        fileUrl: req.file.path,
+        submissionTime: new Date(),
+        isLate,
+        comments
+      });
+
+      // Update task status to 'completed'
+      await task.update({ status: 'completed' });
+
+
+      // Notify group members and professor about the submission
+      const groupMembers = await GroupMember.findAll({
+        where: { groupId: task.Group.id }
+      });
+
+      // Get all users who should be notified (group members + team leader)
+      const notifyUsers = [...groupMembers, { userId: task.Group.teamLeaderId }]
+        .filter(user => user.userId !== submitterId);
+
+      // Create notifications
+      await Promise.all(
+        notifyUsers.map(user =>
+          createNotification(
+            'submission',
+            `New submission for task: ${task.title}`,
+            user.userId,
+            task.Group.id,
+            taskId
+          )
+        )
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'File submitted successfully',
+        data: {
+          submission,
+          isLate,
+          taskStatus: 'completed'
+        }
+      });
+
+    } catch (error) {
+      console.error('File submission error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+});
+
+// Get all submissions for a task
+app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) => {
+  const { taskId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Get task and group details
+    const task = await Task.findOne({
+      where: { id: taskId },
+      include: [{ model: Group }]
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Check if user is authorized (group member, team leader, or admin)
+    const isGroupMember = await GroupMember.findOne({
+      where: { 
+        groupId: task.Group.id, 
+        userId 
+      }
+    });
+
+    const user = await User.findByPk(userId);
+
+    if (!isGroupMember && task.Group.teamLeaderId !== userId && !user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view submissions'
+      });
+    }
+
+    // Get all submissions for the task
+    const submissions = await Submission.findAll({
+      where: { taskId },
+      include: [{
+        model: User,
+        as: 'submitter',
+        attributes: ['username']
+      }],
+      order: [['submissionTime', 'DESC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: submissions
+    });
+
+  } catch (error) {
+    console.error('Error retrieving submissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Download a submission file
+app.get('/api/submissions/:submissionId/download', authenticateToken, async (req, res) => {
+  const { submissionId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const submission = await Submission.findOne({
+      where: { id: submissionId },
+      include: [{
+        model: Task,
+        include: [{ model: Group }]
+      }]
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Submission not found'
+      });
+    }
+
+    // Check authorization
+    const isGroupMember = await GroupMember.findOne({
+      where: { 
+        groupId: submission.Task.Group.id, 
+        userId 
+      }
+    });
+
+    const user = await User.findByPk(userId);
+
+    if (!isGroupMember && 
+        submission.Task.Group.teamLeaderId !== userId && 
+        !user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to download this file'
+      });
+    }
+
+    const filePath = path.join(__dirname, submission.fileUrl);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found'
+      });
+    }
+
+    res.download(filePath, submission.fileName);
+
+  } catch (error) {
+    console.error('File download error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 
 
 // Start the server

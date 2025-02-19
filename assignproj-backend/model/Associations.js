@@ -4,6 +4,8 @@ const GroupMember = require('./GroupMember');
 const User = require('./Users');
 const Task = require('./Task');
 const Notification = require('./Notification');
+const Message = require('./Message');
+const Submission = require('./Submission');
 
 // Project - Group associations
 Project.hasMany(Group, { foreignKey: 'projectId' });
@@ -34,4 +36,14 @@ Notification.belongsTo(Group, { foreignKey: 'groupId' });
 Notification.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
 Notification.belongsTo(User, { foreignKey: 'userId', as: 'Recipient' });
 
-module.exports = {Project, Group, GroupMember, User,Task, Notification};
+// Message associations
+Message.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
+Message.belongsTo(Group, { foreignKey: 'groupId' });
+Group.hasMany(Message, { foreignKey: 'groupId' });
+
+// Submission associations
+Submission.belongsTo(Task, { foreignKey: 'taskId' });
+Submission.belongsTo(User, { as: 'submitter', foreignKey: 'submitterId' });
+Task.hasMany(Submission, { foreignKey: 'taskId' });
+
+module.exports = {Project, Group, GroupMember, User,Task, Notification, Message, Submission};
