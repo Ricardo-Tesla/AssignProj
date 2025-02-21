@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
-import LoginForm from './components/LoginForm';
-import Dashboard from './components/Dashboard';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LoginSignup from './components/Authentication/LoginSignUpPage';
+import Dashboard from './components/Dashboard/Dashboard';
+
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      {!isAuthenticated ? (
-        <LoginForm setIsAuthenticated={setIsAuthenticated} setUser={setUser} />
-      ) : (
-        <Dashboard user={user} setIsAuthenticated={setIsAuthenticated} />
-      )}
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginSignup />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </Router>
   );
 }
 
