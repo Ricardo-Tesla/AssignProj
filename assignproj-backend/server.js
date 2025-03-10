@@ -4,7 +4,7 @@ const { Project, Group, GroupMember, User, Task, Notification, Message, Submissi
 const sequelize = require('./config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { createNotification } = require('./utils/createNotification.js'); 
+const { createNotification } = require('./utils/createNotification.js');
 const upload = require('./config/multer');
 const fs = require('fs');
 const path = require('path');
@@ -81,10 +81,9 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
-    const hashedPassword = bcrypt.hashSync(password, 10);
     const user = await User.create({
       username,
-      password: hashedPassword,
+      password, // No need to hash here
       isAdmin: isAdmin || false
     });
 
@@ -111,9 +110,12 @@ app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
+    console.log(`Login attempt for username: ${username}`);
+
     const user = await User.findOne({ where: { username } });
 
     if (!user) {
+      console.log('User not found');
       return res.status(401).json({
         success: false,
         message: 'Invalid username or password'
@@ -123,6 +125,7 @@ app.post('/api/login', async (req, res) => {
     const isMatch = bcrypt.compareSync(password, user.password);
 
     if (!isMatch) {
+      console.log('Password does not match');
       return res.status(401).json({
         success: false,
         message: 'Invalid username or password'
@@ -137,7 +140,8 @@ app.post('/api/login', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      token
+      token,
+      isAdmin: user.isAdmin
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -148,6 +152,25 @@ app.post('/api/login', async (req, res) => {
     });
   }
 });
+
+// server.js
+app.get('/api/user', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: ['id', 'username'] // Only fetch necessary fields
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 
 // Project creation route
 app.post('/api/projects', authenticateToken, async (req, res) => {
@@ -240,6 +263,41 @@ app.post('/api/projects/:projectId/groups', authenticateToken, async (req, res) 
       success: false,
       message: error.message || 'Server error'
     });
+  }
+});
+
+// Get single project
+app.get('/api/projects/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.projectId);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: project
+    });
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+});
+// Get all projects
+app.get('/api/projects', authenticateToken, async (req, res) => {
+  try {
+    const projects = await Project.findAll();
+    res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -698,13 +756,13 @@ app.get('/api/admin/sent-notifications', authenticateToken, async (req, res) => 
     let whereClause = {
       createdBy: req.user.id  // This assumes your Notification model has a createdBy field
     };
-    
+
     // Optional filters
     const { userId, groupId, type } = req.query;
     if (userId) whereClause.userId = userId;
     if (groupId) whereClause.groupId = groupId;
     if (type) whereClause.type = type;
-    
+
     // Build includes for related models
     const includeModels = [
       {
@@ -721,20 +779,20 @@ app.get('/api/admin/sent-notifications', authenticateToken, async (req, res) => 
         attributes: ['username']  // Removed 'email' field
       }
     ];
-    
+
     // Get notifications
     const notifications = await Notification.findAll({
       where: whereClause,
       include: includeModels,
       order: [['createdAt', 'DESC']]
     });
-    
+
     res.status(200).json({
       success: true,
       count: notifications.length,
       data: notifications
     });
-    
+
   } catch (error) {
     console.error('Error retrieving admin sent notifications:', error);
     res.status(500).json({
@@ -965,9 +1023,9 @@ app.delete('/api/groups/:groupId/messages/:messageId', authenticateToken, async 
 
 
 // Submit a file for a task
-app.post('/api/tasks/:taskId/submissions', 
-  authenticateToken, 
-  upload.single('file'), 
+app.post('/api/tasks/:taskId/submissions',
+  authenticateToken,
+  upload.single('file'),
   async (req, res) => {
     const { taskId } = req.params;
     const { comments } = req.body;
@@ -996,9 +1054,9 @@ app.post('/api/tasks/:taskId/submissions',
 
       // Check if user is a member of the group
       const isGroupMember = await GroupMember.findOne({
-        where: { 
-          groupId: task.Group.id, 
-          userId: submitterId 
+        where: {
+          groupId: task.Group.id,
+          userId: submitterId
         }
       });
 
@@ -1067,7 +1125,7 @@ app.post('/api/tasks/:taskId/submissions',
         error: error.message
       });
     }
-});
+  });
 
 // Get all submissions for a task
 app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) => {
@@ -1090,9 +1148,9 @@ app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) =>
 
     // Check if user is authorized (group member, team leader, or admin)
     const isGroupMember = await GroupMember.findOne({
-      where: { 
-        groupId: task.Group.id, 
-        userId 
+      where: {
+        groupId: task.Group.id,
+        userId
       }
     });
 
@@ -1154,17 +1212,17 @@ app.get('/api/submissions/:submissionId/download', authenticateToken, async (req
 
     // Check authorization
     const isGroupMember = await GroupMember.findOne({
-      where: { 
-        groupId: submission.Task.Group.id, 
-        userId 
+      where: {
+        groupId: submission.Task.Group.id,
+        userId
       }
     });
 
     const user = await User.findByPk(userId);
 
-    if (!isGroupMember && 
-        submission.Task.Group.teamLeaderId !== userId && 
-        !user.isAdmin) {
+    if (!isGroupMember &&
+      submission.Task.Group.teamLeaderId !== userId &&
+      !user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to download this file'
@@ -1172,7 +1230,7 @@ app.get('/api/submissions/:submissionId/download', authenticateToken, async (req
     }
 
     const filePath = path.join(__dirname, submission.fileUrl);
-    
+
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
