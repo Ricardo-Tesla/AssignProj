@@ -8,6 +8,7 @@ const { createNotification } = require('./utils/createNotification.js');
 const upload = require('./config/multer');
 const fs = require('fs');
 const path = require('path');
+const { Op } = require('sequelize');
 
 
 const app = express();
@@ -153,7 +154,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// server.js
 app.get('/api/user', authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
@@ -168,6 +168,41 @@ app.get('/api/user', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching user details:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// Search users by username
+app.get('/api/users/search', authenticateToken, async (req, res) => {
+  const { query } = req.query; // Search query string
+
+  if (!query || query.length < 2) {
+    return res.status(400).json({
+      success: false,
+      message: 'Search query must be at least 2 characters'
+    });
+  }
+
+  try {
+    const users = await User.findAll({
+      where: {
+        username: {
+          [Op.like]: `%${query}%` // Use Sequelize operator for LIKE query
+        }
+      },
+      attributes: ['id', 'username'],
+      limit: 10 // Limit results to prevent performance issues
+    });
+
+    res.status(200).json({
+      success: true,
+      data: users
+    });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 });
 
@@ -290,6 +325,7 @@ app.get('/api/projects/:projectId', authenticateToken, async (req, res) => {
     });
   }
 });
+
 // Get all projects
 app.get('/api/projects', authenticateToken, async (req, res) => {
   try {

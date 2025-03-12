@@ -310,23 +310,27 @@
                     <div class="sidebar-user-name">User Name</div>
                 </div>
                 <div class="sidebar-nav">
-                    <a href="/create-project" class="sidebar-nav-link">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Create Project</span>
-                    </a>
-                    <a href="/view-projects" class="sidebar-nav-link">
+                    <a href="#" class="sidebar-nav-link">
                         <i class="fas fa-eye"></i>
                         <span>View Project Details</span>
                     </a>
-                    <a href="/monitor-progress" class="sidebar-nav-link">
+                    <a href="./projectDetails.html" class="sidebar-nav-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Project</span>
+                    </a>
+                    <a href="./groupmembers.html" class="sidebar-nav-link">
+                        <i class="fas fa-eye"></i>
+                        <span>Assign Groups</span>
+                    </a>
+                    <a href="./monitorGroupProgress.html" class="sidebar-nav-link">
                         <i class="fas fa-chart-line"></i>
                         <span>Monitor Group Progress</span>
                     </a>
-                    <a href="/track-submissions" class="sidebar-nav-link">
+                    <a href="./taskSubmission.html" class="sidebar-nav-link">
                         <i class="fas fa-tasks"></i>
                         <span>Track Submissions</span>
                     </a>
-                    <a href="/notifications" class="sidebar-nav-link">
+                    <a href="./NotificationsPage.html" class="sidebar-nav-link">
                         <i class="fas fa-bell"></i>
                         <span>Notifications</span>
                     </a>
@@ -350,13 +354,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            // Create a container for projects if it doesn't exist
-            const projectContainerEl = document.getElementById('project-container');
-            if (!document.getElementById('projects-container')) {
-                const projectsContainer = document.createElement('div');
-                projectsContainer.id = 'projects-container';
-                projectContainerEl.appendChild(projectsContainer);
-            }
+            
         
             // API Base URL - using your port 5000
             const API_BASE_URL = 'http://localhost:5000';
@@ -390,6 +388,15 @@
                     `;
                 }
             };
+            
+            // Create a container for projects if it doesn't exist
+            const projectContainerEl = document.getElementById('project-container');
+            if (!document.getElementById('projects-container')) {
+                const projectsContainer = document.createElement('div');
+                projectsContainer.id = 'projects-container';
+                projectContainerEl.appendChild(projectsContainer);
+            }
+            
         
             // Render projects and groups
             const renderProjects = (projects) => {
