@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Group Progress</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: azure;
+            overflow-x: hidden;
+        }
+
+        main {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 20px 10px;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sidebar-user {
+            text-align: center;
+            margin-bottom: 3em;
+        }
+
+        .sidebar-user-icon {
+            font-size: 40px;
+        }
+
+        .sidebar-user-name {
+            font-size: 18px;
+            margin-top: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-nav-link span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: #0ef;
+        }
+
+        .sidebar-nav-link.active {
+            background-color: #3498db;
+        }
+
+        .sidebar-logout {
+            margin-top: auto;
+        }
+
+        .sidebar-logout-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logout-button i {
+            margin-right: 8px;
+        }
+
+        .sidebar-logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar.collapsed .sidebar-user-name,
+        .sidebar.collapsed .sidebar-nav-link span,
+        .sidebar.collapsed .sidebar-logout-button span {
+            display: none;
+        }
+
+        section {
+            flex: 1;
+            padding: 20px 30px;
+            margin-left: 20px;
+            max-width: calc(100% - 270px);
+            position: relative;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 28px;
+            color: #2c3e50;
+        }
+
+        .group-progress {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .group-progress h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .tasks-table th, .tasks-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tasks-table th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: 600;
+        }
+
+        .tasks-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .tasks-table td {
+            color: #555;
+        }
+
+        .tasks-table .status {
+            font-weight: 500;
+        }
+
+        .tasks-table .status.completed {
+            color: #27ae60;
+        }
+
+        .tasks-table .status.in-progress {
+            color: #f39c12;
+        }
+
+        .tasks-table .status.not-started {
+            color: #e74c3c;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            section {
+                width: 100%;
+                padding: 20px;
+                margin-left: 0;
+                max-width: 100%;
+            }
+
+            .tasks-table th, .tasks-table td {
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            h1 {
+                font-size: 24px;
+            }
+            
+            .group-progress h2 {
+                font-size: 20px;
+            }
+            
+            .tasks-table th, .tasks-table td {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main>
+        <nav>
+            <div class="sidebar" id="sidebar">
+                <button class="toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <div class="sidebar-user">
+                    <div class="sidebar-user-icon">👤</div>
+                    <div class="sidebar-user-name">Professor</div>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="/create-project" class="sidebar-nav-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Project</span>
+                    </a>
+                    <a href="/view-projects" class="sidebar-nav-link">
+                        <i class="fas fa-eye"></i>
+                        <span>View Project Details</span>
+                    </a>
+                    <a href="/monitor-progress" class="sidebar-nav-link">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Monitor Group Progress</span>
+                    </a>
+                    <a href="/track-submissions" class="sidebar-nav-link">
+                        <i class="fas fa-tasks"></i>
+                        <span>Track Submissions</span>
+                    </a>
+                    <a href="/notifications" class="sidebar-nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </div>
+                <div class="sidebar-logout">
+                    <button class="sidebar-logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <section>
+            <h1>Monitor Group Progress</h1>
+            <div class="group-progress">
+                <h2>Group 1: Online Learning Platform</h2>
+                <table class="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Task</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Alex Johnson</td>
+                            <td>Frontend: Homepage Design</td>
+                            <td>2023-11-15</td>
+                            <td class="status completed">Completed</td>
+                        </tr>
+                        <tr>
+                            <td>Jamie Smith</td>
+                            <td>Frontend: Navigation & User Dashboard</td>
+                            <td>2023-11-20</td>
+                            <td class="status in-progress">In Progress</td>
+                        </tr>
+                        <tr>
+                            <td>Taylor Wilson</td>
+                            <td>Backend: Database Setup</td>
+                            <td>2023-11-18</td>
+                            <td class="status completed">Completed</td>
+                        </tr>
+                        <tr>
+                            <td>Morgan Lee</td>
+                            <td>Backend: API Development</td>
+                            <td>2023-11-25</td>
+                            <td class="status not-started">Not Started</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="group-progress">
+                <h2>Group 2: Online Learning Platform</h2>
+                <table class="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Task</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jordan Davis</td>
+                            <td>Frontend: UI/UX Design</td>
+                            <td>2023-11-15</td>
+                            <td class="status completed">Completed</td>
+                        </tr>
+                        <tr>
+                            <td>Casey Martinez</td>
+                            <td>Frontend: Course Content Pages</td>
+                            <td>2023-11-22</td>
+                            <td class="status in-progress">In Progress</td>
+                        </tr>
+                        <tr>
+                            <td>Riley Thompson</td>
+                            <td>Backend: Authentication System</td>
+                            <td>2023-11-20</td>
+                            <td class="status in-progress">In Progress</td>
+                        </tr>
+                        <tr>
+                            <td>Avery Garcia</td>
+                            <td>Backend: Content Management System</td>
+                            <td>2023-11-28</td>
+                            <td class="status not-started">Not Started</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Toggle sidebar on mobile
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+        
+        // Toggle sidebar collapse on desktop
+        const toggleSidebar = document.getElementById('toggle-sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+        
+        const updateToggleVisibility = () => {
+            if (window.innerWidth > 768) {
+                toggleSidebar.style.display = 'block';
+            } else {
+                toggleSidebar.style.display = 'none';
+            }
+        };
+        
+        updateToggleVisibility();
+        window.addEventListener('resize', updateToggleVisibility);
+        
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+                document.querySelector('section').style.marginLeft = '10px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 70px)';
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+                document.querySelector('section').style.marginLeft = '20px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
+            }
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(e.target) && 
+                e.target !== mobileMenuToggle && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

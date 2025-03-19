@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Tasks - Project Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base Styles */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f0f7ff;
+            overflow-x: hidden;
+        }
+
+        main {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2980b9;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 20px 10px;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sidebar-user {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+
+        .sidebar-user-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-user-name {
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            min-width: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .sidebar-nav-link span {
+            font-size: 14px;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav-link.active {
+            background-color: #1a5276;
+        }
+
+        .sidebar-logout {
+            margin-top: auto;
+        }
+
+        .sidebar-logout-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logout-button i {
+            margin-right: 8px;
+        }
+        .sidebar-logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar.collapsed .sidebar-user-name,
+        .sidebar.collapsed .sidebar-nav-link span,
+        .sidebar.collapsed .sidebar-logout-button span {
+            display: none;
+        }
+
+        /* Main Content Styles */
+        section {
+            flex: 1;
+            padding: 25px 30px;
+            margin-left: 20px;
+            max-width: calc(100% - 270px);
+            position: relative;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        /* Tasks Layout Styles */
+        .task-columns {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .task-column {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .task-column h2 {
+            color: #2980b9;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .task-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 50px;
+            border-left: 4px solid;
+            transition: transform 0.2s;
+        }
+
+        .task-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .assigned-member {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .member-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #2980b9;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .task-description {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .task-due-date {
+            font-size: 13px;
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        .task-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        /* Status Colors */
+        .status-notstarted { border-color: #e74c3c; }
+        .status-inprogress { border-color: #f1c40f; }
+        .status-completed { border-color: #27ae60; }
+
+        .status-notstarted .task-status { background: #e74c3c20; color: #e74c3c; }
+        .status-inprogress .task-status { background: #f1c40f20; color: #f1c40f; }
+        .status-completed .task-status { background: #27ae6020; color: #27ae60; }
+
+        /* Mobile Styles */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                z-index: 1000;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            section {
+                width: 100%;
+                padding: 20px;
+                margin-left: 0;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-top: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .task-column {
+                padding: 15px;
+            }
+            
+            .task-card {
+                padding: 12px;
+            }
+            
+            .task-title {
+                font-size: 15px;
+            }
+            
+            .task-description {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main>
+        <nav>
+            <div class="sidebar" id="sidebar">
+                <button class="toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <div class="sidebar-user">
+                    <div class="sidebar-user-icon">👨‍🎓</div>
+                    <div class="sidebar-user-name">Emily Johnson</div>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Project Details</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link active">
+                        <i class="fas fa-tasks"></i>
+                        <span>View Tasks</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-comments"></i>
+                        <span>Group Chat</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-file"></i>
+                        <span>Shared Files</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </div>
+                <div class="sidebar-logout">
+                    <button class="sidebar-logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <section>
+            <h1>Team Task Management</h1>
+            
+            <div class="task-columns">
+                <div class="task-column">
+                    <h2>Not Started (3)</h2>
+                    <div class="task-card status-notstarted">
+                        <div class="task-header">
+                            <div class="assigned-member">
+                                <div class="member-icon">EJ</div>
+                                <span>Emily</span>
+                            </div>
+                            <span class="task-status">Not Started</span>
+                        </div>
+                        <h3 class="task-title">Design Homepage Layout</h3>
+                        <p class="task-description">Create wireframes and mockups for the main landing page.</p>
+                        <div class="task-due-date">Due: 2023-11-15</div>
+                    </div>
+
+                    <div class="task-card status-notstarted">
+                        <div class="task-header">
+                            <div class="assigned-member">
+                                <div class="member-icon">SP</div>
+                                <span>Samir</span>
+                            </div>
+                            <span class="task-status">Not Started</span>
+                        </div>
+                        <h3 class="task-title">Database Schema Design</h3>
+                        <p class="task-description">Design initial database structure for user management.</p>
+                        <div class="task-due-date">Due: 2023-11-18</div>
+                    </div>
+                </div>
+
+                <div class="task-column">
+                    <h2>In Progress (2)</h2>
+                    <div class="task-card status-inprogress">
+                        <div class="task-header">
+                            <div class="assigned-member">
+                                <div class="member-icon">AC</div>
+                                <span>Alex</span>
+                            </div>
+                            <span class="task-status">In Progress</span>
+                        </div>
+                        <h3 class="task-title">API Endpoint Development</h3>
+                        <p class="task-description">Implement user authentication endpoints.</p>
+                        <div class="task-due-date">Due: 2023-11-20</div>
+                    </div>
+
+                    <div class="task-card status-inprogress">
+                        <div class="task-header">
+                            <div class="assigned-member">
+                                <div class="member-icon">MG</div>
+                                <span>Maria</span>
+                            </div>
+                            <span class="task-status">In Progress</span>
+                        </div>
+                        <h3 class="task-title">Course Module Component</h3>
+                        <p class="task-description">Develop reusable course card component.</p>
+                        <div class="task-due-date">Due: 2023-11-17</div>
+                    </div>
+                </div>
+
+                <div class="task-column">
+                    <h2>Completed (1)</h2>
+                    <div class="task-card status-completed">
+                        <div class="task-header">
+                            <div class="assigned-member">
+                                <div class="member-icon">EJ</div>
+                                <span>Emily</span>
+                            </div>
+                            <span class="task-status">Completed</span>
+                        </div>
+                        <h3 class="task-title">Project Setup</h3>
+                        <p class="task-description">Initialize repository and set up development environment.</p>
+                        <div class="task-due-date">Due: 2023-11-10</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Sidebar Management
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebar = document.getElementById('toggle-sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // Toggle Mobile Menu
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // Toggle Desktop Sidebar
+        const handleSidebarToggle = () => {
+            sidebar.classList.toggle('collapsed');
+            
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                document.querySelector('section').style.marginLeft = '10px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 70px)';
+            } else {
+                toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                document.querySelector('section').style.marginLeft = '20px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
+            }
+        };
+
+        // Window Resize Handler
+        const handleResize = () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                toggleSidebar.style.display = 'block';
+            } else {
+                toggleSidebar.style.display = 'none';
+            }
+        };
+
+        // Event Listeners
+        toggleSidebar.addEventListener('click', handleSidebarToggle);
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('DOMContentLoaded', handleResize);
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(e.target) && 
+                e.target !== mobileMenuToggle && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+</html>

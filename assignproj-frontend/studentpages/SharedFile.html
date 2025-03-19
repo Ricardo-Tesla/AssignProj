@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Files</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base Styles */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f0f7ff;
+            overflow-x: hidden;
+        }
+
+        main {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2980b9;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 20px 10px;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sidebar-user {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+
+        .sidebar-user-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-user-name {
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            min-width: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .sidebar-nav-link span {
+            font-size: 14px;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav-link.active {
+            background-color: #1a5276;
+        }
+
+        .sidebar-logout {
+            margin-top: auto;
+        }
+
+        .sidebar-logout-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logout-button i {
+            margin-right: 8px;
+        }
+
+        .sidebar-logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar.collapsed .sidebar-user-name,
+        .sidebar.collapsed .sidebar-nav-link span,
+        .sidebar.collapsed .sidebar-logout-button span {
+            display: none;
+        }
+
+        /* Main Content Styles */
+        section {
+            flex: 1;
+            padding: 25px 30px;
+            margin-left: 20px;
+            max-width: calc(100% - 270px);
+            position: relative;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .files-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .files-container h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .files-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .files-table th, 
+        .files-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .files-table th {
+            background-color: #2980b9;
+            color: white;
+            font-weight: 500;
+        }
+
+        .files-table tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .files-table td {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .files-table .status {
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 5px 10px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .files-table .status.submitted {
+            background-color: #e8f6f3;
+            color: #27ae60;
+        }
+
+        .files-table .status.pending {
+            background-color: #fef5e7;
+            color: #f39c12;
+        }
+
+        .files-table .status.late {
+            background-color: #fdedec;
+            color: #e74c3c;
+        }
+        
+        .files-table .status.reviewed {
+            background-color: #eaf2f8;
+            color: #3498db;
+        }
+
+        .file-link {
+            color: #2980b9;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .file-link:hover {
+            text-decoration: underline;
+        }
+
+        .file-link i {
+            margin-right: 5px;
+        }
+
+        .upload-new {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+
+        .upload-new:hover {
+            background-color: #1a5276;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                z-index: 1000;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            section {
+                width: 100%;
+                padding: 20px;
+                margin-left: 0;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-top: 15px;
+            }
+
+            .files-table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .files-table th, 
+            .files-table td {
+                padding: 10px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .files-container h2 {
+                font-size: 18px;
+            }
+            
+            .files-table th, 
+            .files-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main>
+        <nav>
+            <div class="sidebar" id="sidebar">
+                <button class="toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <div class="sidebar-user">
+                    <div class="sidebar-user-icon">👨🎓</div>
+                    <div class="sidebar-user-name">Emily Johnson</div>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Project Details</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-tasks"></i>
+                        <span>View Tasks</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-comments"></i>
+                        <span>Group Chat</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link active">
+                        <i class="fas fa-file"></i>
+                        <span>Shared Files</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </div>
+                <div class="sidebar-logout">
+                    <button class="sidebar-logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <section>
+            <h1>Shared Files</h1>
+
+            <div class="files-container">
+                <h2>My Shared Files</h2>
+                <table class="files-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Task Description</th>
+                            <th>Shared File</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Emily Johnson</td>
+                            <td>API Documentation</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-pdf"></i>
+                                    API_Docs_v1.pdf
+                                </a>
+                            </td>
+                            <td>Nov 15, 2023</td>
+                            <td><span class="status submitted">Submitted</span></td>
+                        </tr>
+                        <tr>
+                            <td>Emily Johnson</td>
+                            <td>Frontend Wireframes</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-image"></i>
+                                    Wireframes.png
+                                </a>
+                            </td>
+                            <td>Nov 10, 2023</td>
+                            <td><span class="status reviewed">Reviewed</span></td>
+                        </tr>
+                        <tr>
+                            <td>Emily Johnson</td>
+                            <td>Database Schema</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-code"></i>
+                                    DB_Schema.sql
+                                </a>
+                            </td>
+                            <td>Nov 18, 2023</td>
+                            <td><span class="status pending">Pending</span></td>
+                        </tr>
+                        <tr>
+                            <td>Emily Johnson</td>
+                            <td>Testing Documentation</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-alt"></i>
+                                    Test_Plan.docx
+                                </a>
+                            </td>
+                            <td>Nov 08, 2023</td>
+                            <td><span class="status late">Late</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button class="upload-new">
+                    <i class="fas fa-upload"></i>
+                    Upload New File
+                </button>
+            </div>
+
+            <div class="files-container">
+                <h2>Group Shared Files</h2>
+                <table class="files-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Task Description</th>
+                            <th>Shared File</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Alex Chen</td>
+                            <td>UI Component Library</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-code"></i>
+                                    Components.zip
+                                </a>
+                            </td>
+                            <td>Nov 12, 2023</td>
+                            <td><span class="status submitted">Submitted</span></td>
+                        </tr>
+                        <tr>
+                            <td>Maria Gonzalez</td>
+                            <td>Backend Authentication</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-code"></i>
+                                    Auth_Module.js
+                                </a>
+                            </td>
+                            <td>Nov 10, 2023</td>
+                            <td><span class="status reviewed">Reviewed</span></td>
+                        </tr>
+                        <tr>
+                            <td>James Wilson</td>
+                            <td>Data Models</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-code"></i>
+                                    Models.py
+                                </a>
+                            </td>
+                            <td>Nov 15, 2023</td>
+                            <td><span class="status submitted">Submitted</span></td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Lee</td>
+                            <td>Project Timeline</td>
+                            <td>
+                                <a href="#" class="file-link">
+                                    <i class="fas fa-file-excel"></i>
+                                    Timeline.xlsx
+                                </a>
+                            </td>
+                            <td>Nov 07, 2023</td>
+                            <td><span class="status reviewed">Reviewed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Sidebar Management
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebar = document.getElementById('toggle-sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // Toggle Mobile Menu
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // Toggle Desktop Sidebar
+        const handleSidebarToggle = () => {
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                document.querySelector('section').style.marginLeft = '10px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 70px)';
+            } else {
+                toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                document.querySelector('section').style.marginLeft = '20px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
+            }
+        };
+
+        // Window Resize Handler
+        const handleResize = () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                toggleSidebar.style.display = 'block';
+            } else {
+                toggleSidebar.style.display = 'none';
+            }
+        };
+
+        // Event Listeners
+        toggleSidebar.addEventListener('click', handleSidebarToggle);
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('DOMContentLoaded', handleResize);
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                e.target !== mobileMenuToggle &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -337,11 +337,12 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
   }
 });
 
-// Modified GET route to retrieve groups for a specific project
+// GET route to retrieve all groups for a specific project
 app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) => {
   const { projectId } = req.params;
-
+  
   try {
+    // Find all groups for the project
     const groups = await Group.findAll({
       where: { projectId },
       include: [
@@ -354,15 +355,34 @@ app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) =
           model: GroupMember,
           include: [{
             model: User,
-            attributes: ['username'] // Only include username for group members too
+            attributes: ['id', 'username'] // Include username for group members
           }]
         }
       ]
     });
 
+    if (!groups || groups.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No groups found for this project.',
+        data: []
+      });
+    }
+
+    // Format the response to include details for all groups
+    const formattedGroups = groups.map(group => ({
+      id: group.id,
+      name: group.name,
+      teamLeader: group.teamLeader ? group.teamLeader : null,
+      GroupMembers: group.GroupMembers.map(member => ({
+        id: member.id,
+        User: member.User
+      }))
+    }));
+
     res.status(200).json({
       success: true,
-      data: groups
+      data: formattedGroups
     });
   } catch (error) {
     console.error('Error retrieving groups:', error);
@@ -373,6 +393,66 @@ app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) =
     });
   }
 });
+
+// GET route to retrieve the current user's group for a specific project
+app.get('/api/projects/:projectId/mygroup', authenticateToken, async (req, res) => {
+  const { projectId } = req.params;
+  const userId = req.user.id; // Get the logged-in user's ID from the token
+
+  try {
+    // First find if the user is a member of any group in this project
+    const groupMember = await GroupMember.findOne({
+      where: { userId },
+      include: [{
+        model: Group,
+        where: { projectId },
+        include: [{
+          model: User,
+          as: 'teamLeader',
+          attributes: ['id', 'username']
+        }]
+      }]
+    });
+
+    if (!groupMember || !groupMember.Group) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+        message: 'User is not assigned to any group for this project.'
+      });
+    }
+
+    // Get all members of this group
+    const allGroupMembers = await GroupMember.findAll({
+      where: { groupId: groupMember.Group.id },
+      include: [{
+        model: User,
+        attributes: ['id', 'username']
+      }]
+    });
+
+    // Format the response in exactly the structure needed by the frontend
+    const formattedGroup = {
+      id: groupMember.Group.id,
+      name: groupMember.Group.name,
+      teamLeader: groupMember.Group.teamLeader ? groupMember.Group.teamLeader.username : null,
+      members: allGroupMembers.map(member => member.User.username)
+    };
+
+    res.status(200).json({
+      success: true,
+      data: formattedGroup
+    });
+  } catch (error) {
+    console.error('Error retrieving user group:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 
 // PUT route to update a group
 app.put('/api/projects/:projectId/groups/:groupId', authenticateToken, async (req, res) => {
