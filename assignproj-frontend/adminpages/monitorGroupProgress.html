@@ -190,6 +190,11 @@
             color: #2c3e50;
         }
 
+        .group-leader {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
         .tasks-table {
             width: 100%;
             border-collapse: collapse;
@@ -199,7 +204,8 @@
             overflow: hidden;
         }
 
-        .tasks-table th, .tasks-table td {
+        .tasks-table th,
+        .tasks-table td {
             padding: 15px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -219,20 +225,109 @@
             color: #555;
         }
 
-        .tasks-table .status {
+        .task-status {
             font-weight: 500;
         }
 
-        .tasks-table .status.completed {
+        .task-row.completed .task-status {
             color: #27ae60;
         }
 
-        .tasks-table .status.in-progress {
-            color: #f39c12;
+        .task-row.overdue .task-status {
+            color: #e74c3c;
         }
 
-        .tasks-table .status.not-started {
-            color: #e74c3c;
+        .loading-indicator {
+            padding: 15px;
+            text-align: center;
+            color: #3498db;
+        }
+
+        .error-message {
+            background-color: #fadbd8;
+            border: 1px solid #e74c3c;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .error-message h3 {
+            color: #c0392b;
+            margin-bottom: 10px;
+        }
+
+        .error-message button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .no-data,
+        .no-tasks {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        /* Projects section */
+        .projects-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .project-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .project-card h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .project-card p {
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .view-project-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .view-project-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .back-button {
+            margin-bottom: 20px;
+        }
+
+        .back-button button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-button button:hover {
+            background-color: #2980b9;
         }
 
         /* Responsive adjustments */
@@ -242,15 +337,15 @@
                 left: -250px;
                 transition: left 0.3s ease;
             }
-            
+
             .sidebar.open {
                 left: 0;
             }
-            
+
             .mobile-menu-toggle {
                 display: block;
             }
-            
+
             section {
                 width: 100%;
                 padding: 20px;
@@ -258,7 +353,8 @@
                 max-width: 100%;
             }
 
-            .tasks-table th, .tasks-table td {
+            .tasks-table th,
+            .tasks-table td {
                 padding: 10px;
             }
         }
@@ -267,12 +363,13 @@
             h1 {
                 font-size: 24px;
             }
-            
+
             .group-progress h2 {
                 font-size: 20px;
             }
-            
-            .tasks-table th, .tasks-table td {
+
+            .tasks-table th,
+            .tasks-table td {
                 font-size: 14px;
                 padding: 8px;
             }
@@ -296,23 +393,23 @@
                     <div class="sidebar-user-name">Professor</div>
                 </div>
                 <div class="sidebar-nav">
-                    <a href="/create-project" class="sidebar-nav-link">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Create Project</span>
-                    </a>
-                    <a href="/view-projects" class="sidebar-nav-link">
+                    <a href="./ViewProjectDetails.html" class="sidebar-nav-link">
                         <i class="fas fa-eye"></i>
                         <span>View Project Details</span>
                     </a>
-                    <a href="/monitor-progress" class="sidebar-nav-link">
+                    <a href="./projectDetails.html" class="sidebar-nav-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Project</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link active">
                         <i class="fas fa-chart-line"></i>
                         <span>Monitor Group Progress</span>
                     </a>
-                    <a href="/track-submissions" class="sidebar-nav-link">
+                    <a href="./taskSubmission.html" class="sidebar-nav-link">
                         <i class="fas fa-tasks"></i>
                         <span>Track Submissions</span>
                     </a>
-                    <a href="/notifications" class="sidebar-nav-link">
+                    <a href="./NotificationsPage.html" class="sidebar-nav-link">
                         <i class="fas fa-bell"></i>
                         <span>Notifications</span>
                     </a>
@@ -327,102 +424,336 @@
         </nav>
 
         <section>
-            <h1>Monitor Group Progress</h1>
-            <div class="group-progress">
-                <h2>Group 1: Online Learning Platform</h2>
-                <table class="tasks-table">
-                    <thead>
-                        <tr>
-                            <th>Member</th>
-                            <th>Task</th>
-                            <th>Deadline</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Alex Johnson</td>
-                            <td>Frontend: Homepage Design</td>
-                            <td>2023-11-15</td>
-                            <td class="status completed">Completed</td>
-                        </tr>
-                        <tr>
-                            <td>Jamie Smith</td>
-                            <td>Frontend: Navigation & User Dashboard</td>
-                            <td>2023-11-20</td>
-                            <td class="status in-progress">In Progress</td>
-                        </tr>
-                        <tr>
-                            <td>Taylor Wilson</td>
-                            <td>Backend: Database Setup</td>
-                            <td>2023-11-18</td>
-                            <td class="status completed">Completed</td>
-                        </tr>
-                        <tr>
-                            <td>Morgan Lee</td>
-                            <td>Backend: API Development</td>
-                            <td>2023-11-25</td>
-                            <td class="status not-started">Not Started</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="projects-section">
+                <h1>My Projects</h1>
+                <div id="projects-container" class="projects-list">
+                    <div class="loading-indicator">Loading projects...</div>
+                </div>
             </div>
 
-            <div class="group-progress">
-                <h2>Group 2: Online Learning Platform</h2>
-                <table class="tasks-table">
-                    <thead>
-                        <tr>
-                            <th>Member</th>
-                            <th>Task</th>
-                            <th>Deadline</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Jordan Davis</td>
-                            <td>Frontend: UI/UX Design</td>
-                            <td>2023-11-15</td>
-                            <td class="status completed">Completed</td>
-                        </tr>
-                        <tr>
-                            <td>Casey Martinez</td>
-                            <td>Frontend: Course Content Pages</td>
-                            <td>2023-11-22</td>
-                            <td class="status in-progress">In Progress</td>
-                        </tr>
-                        <tr>
-                            <td>Riley Thompson</td>
-                            <td>Backend: Authentication System</td>
-                            <td>2023-11-20</td>
-                            <td class="status in-progress">In Progress</td>
-                        </tr>
-                        <tr>
-                            <td>Avery Garcia</td>
-                            <td>Backend: Content Management System</td>
-                            <td>2023-11-28</td>
-                            <td class="status not-started">Not Started</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="progress-monitor-container" style="display: none;">
+                <div class="back-button">
+                    <button id="back-to-projects">← Back to Projects</button>
+                </div>
+                <h1 id="project-title">Project Progress</h1>
+                <div class="group-progress-container" id="groups-container"></div>
             </div>
         </section>
     </main>
 
     <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // API Base URL
+            const API_BASE_URL = 'http://localhost:5000';
+
+            // Get authentication token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                displayError('No authentication token found. Please log in again.');
+                return;
+            }
+
+            // API request headers
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            // Add event listener for back button
+            document.getElementById('back-to-projects').addEventListener('click', () => {
+                document.getElementById('projects-section').style.display = 'block';
+                document.getElementById('progress-monitor-container').style.display = 'none';
+            });
+
+            // Load projects on initial page load
+            loadProjects();
+
+            // Function to load projects
+            async function loadProjects() {
+                try {
+                    const projectsRes = await fetch(`${API_BASE_URL}/api/projects`, {
+                        headers
+                    });
+
+                    if (!projectsRes.ok) {
+                        throw new Error(`API error: ${projectsRes.status}`);
+                    }
+
+                    const projectsData = await projectsRes.json();
+                    renderProjects(projectsData.data || projectsData);
+                } catch (error) {
+                    console.error('Error loading projects:', error);
+                    displayError('Failed to load projects. Please try again later.');
+                }
+            }
+
+            // Function to render projects list
+            function renderProjects(projects) {
+                const projectsContainer = document.getElementById('projects-container');
+                projectsContainer.innerHTML = '';
+
+                if (!projects || projects.length === 0) {
+                    projectsContainer.innerHTML = '<div class="no-data">No projects found.</div>';
+                    return;
+                }
+
+                projects.forEach(project => {
+                    const projectCard = document.createElement('div');
+                    projectCard.className = 'project-card';
+                    projectCard.innerHTML = `
+                        <h2>${project.title}</h2>
+                        <p>${project.description || 'No description available'}</p>
+                        <button class="view-project-btn" data-project-id="${project.id}">View Progress</button>
+                    `;
+
+                    projectsContainer.appendChild(projectCard);
+                });
+
+                // Add event listeners to project buttons
+                document.querySelectorAll('.view-project-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const projectId = e.target.getAttribute('data-project-id');
+                        loadProjectDetails(projectId);
+                    });
+                });
+            }
+
+            // Function to load project details and groups
+            async function loadProjectDetails(projectId) {
+                try {
+                    // Show loading indicator
+                    const groupsContainer = document.getElementById('groups-container');
+                    groupsContainer.innerHTML = '<div class="loading-indicator">Loading project details...</div>';
+
+                    // Fetch project details
+                    const projectRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                        headers
+                    });
+
+                    if (!projectRes.ok) {
+                        throw new Error(`API error: ${projectRes.status}`);
+                    }
+
+                    const projectData = await projectRes.json();
+
+                    // Fetch groups for this project
+                    const groupsRes = await fetch(`${API_BASE_URL}/api/projects/${projectId}/groups`, {
+                        headers
+                    });
+
+                    if (!groupsRes.ok) {
+                        throw new Error(`API error: ${groupsRes.status}`);
+                    }
+
+                    const groupsData = await groupsRes.json();
+
+                    // Update UI with project title
+                    document.getElementById('project-title').textContent = `Group Progress`;
+
+                    // Switch to progress view
+                    document.getElementById('projects-section').style.display = 'none';
+                    document.getElementById('progress-monitor-container').style.display = 'block';
+
+                    // Process and display groups
+                    await processGroups(groupsData.data);
+
+                } catch (error) {
+                    console.error('Error loading project details:', error);
+                    displayError(`Failed to load project details: ${error.message}`);
+                }
+            }
+
+            // Function to process groups and fetch their tasks
+            async function processGroups(groups) {
+                const groupsContainer = document.getElementById('groups-container');
+                groupsContainer.innerHTML = '';
+
+                if (!groups || groups.length === 0) {
+                    groupsContainer.innerHTML = '<div class="no-data">No groups found for this project.</div>';
+                    return;
+                }
+
+                // Process each group
+                for (const group of groups) {
+                    // Create group element
+                    const groupElement = document.createElement('div');
+                    groupElement.className = 'group-progress';
+                    groupElement.id = `group-${group.id}`;
+
+                    // Set group header
+                    const teamLeader = group.teamLeader ? group.teamLeader.username : 'No leader assigned';
+                    groupElement.innerHTML = `
+                        <h2 class="group-title">${group.name}</h2>
+                        <p class="group-leader">Team Leader: ${teamLeader}</p>
+                        <div class="loading-indicator">Loading tasks...</div>
+                        <table class="tasks-table">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Task</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="group-tasks">
+                            </tbody>
+                        </table>
+                    `;
+
+                    groupsContainer.appendChild(groupElement);
+
+                    // Fetch and display tasks for this group
+                    await fetchGroupTasks(group.id);
+                }
+            }
+
+            // Function to fetch tasks for a specific group
+            async function fetchGroupTasks(groupId) {
+                try {
+                    // Ensure the token is still valid
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        displayError('Authentication token is missing. Please log in again.');
+                        return;
+                    }
+
+                    // Fetch tasks with the correct headers
+                    const tasksRes = await fetch(`${API_BASE_URL}/api/groups/${groupId}/tasks`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    // Handle 403 Forbidden error specifically
+                    if (tasksRes.status === 403) {
+                        throw new Error('You do not have permission to view these tasks. Please check your access rights.');
+                    }
+
+                    // Handle other API errors
+                    if (!tasksRes.ok) {
+                        throw new Error(`API error: ${tasksRes.status}`);
+                    }
+
+                    // Parse and return the tasks data
+                    const tasksData = await tasksRes.json();
+                    renderGroupTasks(groupId, tasksData.data);
+
+                } catch (error) {
+                    console.error(`Error fetching tasks for group ${groupId}:`, error);
+                    const groupElement = document.getElementById(`group-${groupId}`);
+                    groupElement.querySelector('.loading-indicator').innerHTML =
+                        `<div class="error">Failed to load tasks: ${error.message}</div>`;
+                }
+            }
+
+            // Function to render tasks for a group
+            function renderGroupTasks(groupId, tasks) {
+                const groupElement = document.getElementById(`group-${groupId}`);
+                const loadingIndicator = groupElement.querySelector('.loading-indicator');
+                const tasksBody = groupElement.querySelector('.group-tasks');
+
+                // Remove loading indicator
+                loadingIndicator.style.display = 'none';
+
+                // Clear any existing tasks
+                tasksBody.innerHTML = '';
+
+                if (!tasks || tasks.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = '<td colspan="4" class="no-tasks">No tasks assigned to this group</td>';
+                    tasksBody.appendChild(emptyRow);
+                    return;
+                }
+
+                // Add each task as a row
+                tasks.forEach(task => {
+                    const taskRow = document.createElement('tr');
+                    taskRow.className = 'task-row';
+
+                    // Set status class
+                    if (task.status === 'completed') {
+                        taskRow.classList.add('completed');
+                    } else if (new Date(task.deadline) < new Date() && task.status !== 'completed') {
+                        taskRow.classList.add('overdue');
+                    }
+
+                    const dueDate = new Date(task.dueDate);
+                    const formattedDate = dueDate.toLocaleDateString();
+
+
+
+                    // Determine the color for the task status
+                    let statusColor = '';
+                    if (task.status === 'pending') {
+                        statusColor = 'red';
+                    } else if (task.status === 'in_progress') {
+                        statusColor = 'orange';
+                    } else if (task.status === 'completed') {
+                        statusColor = 'green';
+                    }
+
+                    // Create row content
+                    taskRow.innerHTML = `
+            <td class="member-name">${task.assignedTo ? task.assignedTo.username : 'Unassigned'}</td>
+            <td class="task-description">${task.title}</td>
+            <td class="task-deadline">${formattedDate}</td>
+            <td class="task-status" style="color: ${statusColor};">${capitalizeFirstLetter(task.status)}</td>
+        `;
+
+                    tasksBody.appendChild(taskRow);
+                });
+            }
+
+            // Helper function to display errors
+            function displayError(message) {
+                const errorElement = document.createElement('div');
+                errorElement.className = 'error-message';
+                errorElement.innerHTML = `
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                    <button onclick="location.reload()">Retry</button>
+                `;
+
+                // Clear and add error message to the active container
+                if (document.getElementById('projects-section').style.display !== 'none') {
+                    const container = document.getElementById('projects-container');
+                    container.innerHTML = '';
+                    container.appendChild(errorElement);
+                } else {
+                    const container = document.getElementById('groups-container');
+                    container.innerHTML = '';
+                    container.appendChild(errorElement);
+                }
+            }
+
+            // Helper function to capitalize first letter
+            function capitalizeFirstLetter(string) {
+                if (!string) return '';
+                return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+        });
+
+
+        // Logout button functionality
+        document.querySelector('.sidebar-logout-button').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '../../authentication/LoginPage.html';
+        });
+    
+
         // Toggle sidebar on mobile
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const sidebar = document.getElementById('sidebar');
-        
+
         mobileMenuToggle.addEventListener('click', () => {
             sidebar.classList.toggle('open');
         });
-        
+
         // Toggle sidebar collapse on desktop
         const toggleSidebar = document.getElementById('toggle-sidebar');
         const toggleIcon = document.getElementById('toggle-icon');
-        
+
         const updateToggleVisibility = () => {
             if (window.innerWidth > 768) {
                 toggleSidebar.style.display = 'block';
@@ -430,13 +761,13 @@
                 toggleSidebar.style.display = 'none';
             }
         };
-        
+
         updateToggleVisibility();
         window.addEventListener('resize', updateToggleVisibility);
-        
+
         toggleSidebar.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            
+
             if (sidebar.classList.contains('collapsed')) {
                 toggleIcon.classList.remove('fa-chevron-left');
                 toggleIcon.classList.add('fa-chevron-right');
@@ -449,16 +780,17 @@
                 document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
             }
         });
-        
+
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                e.target !== mobileMenuToggle && 
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                e.target !== mobileMenuToggle &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
             }
         });
     </script>
 </body>
+
 </html>

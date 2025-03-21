@@ -340,7 +340,7 @@ app.get('/api/projects', authenticateToken, async (req, res) => {
 // GET route to retrieve all groups for a specific project
 app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) => {
   const { projectId } = req.params;
-  
+
   try {
     // Find all groups for the project
     const groups = await Group.findAll({
@@ -453,6 +453,57 @@ app.get('/api/projects/:projectId/mygroup', authenticateToken, async (req, res) 
   }
 });
 
+// Get all members of a group with their IDs
+app.get('/api/groups/:groupId/members', authenticateToken, async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Check if user is either team leader or member of the group
+    const isGroupMember = await GroupMember.findOne({
+      where: { groupId, userId }
+    });
+
+    const group = await Group.findOne({
+      where: { id: groupId }
+    });
+
+    if (!isGroupMember && group.teamLeaderId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You must be a group member or team leader to view members.'
+      });
+    }
+
+    // Get all members including the team leader
+    const members = await GroupMember.findAll({
+      where: { groupId },
+      include: [{
+        model: User,
+        attributes: ['id', 'username']
+      }]
+    });
+
+    // Format the response to include userId and username
+    const formattedMembers = members.map(member => ({
+      userId: member.userId,
+      username: member.User.username,
+      isTeamLeader: member.userId === group.teamLeaderId
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedMembers
+    });
+  } catch (error) {
+    console.error('Error retrieving group members:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
 
 // PUT route to update a group
 app.put('/api/projects/:projectId/groups/:groupId', authenticateToken, async (req, res) => {
@@ -634,9 +685,28 @@ app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (r
 app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
   const { groupId } = req.params;
   const userId = req.user.id;
+  const isAdmin = req.user.isAdmin; // Assuming `isAdmin` is included in the token payload
 
   try {
-    // Check if user is either team leader or member of the group
+    // Check if the user is an admin
+    if (isAdmin) {
+      // Admins can view tasks for any group
+      const tasks = await Task.findAll({
+        where: { groupId },
+        include: [{
+          model: User,
+          as: 'assignedTo',
+          attributes: ['username']
+        }]
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: tasks
+      });
+    }
+
+    // For non-admin users, check if they are a group member or team leader
     const isGroupMember = await GroupMember.findOne({
       where: { groupId, userId }
     });
@@ -648,10 +718,11 @@ app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
     if (!isGroupMember && group.teamLeaderId !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You must be a group member or team leader to view tasks.'
+        message: 'Access denied. You must be a group member, team leader, or admin to view tasks.'
       });
     }
 
+    // Fetch tasks for the group
     const tasks = await Task.findAll({
       where: { groupId },
       include: [{
@@ -674,6 +745,7 @@ app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
     });
   }
 });
+
 
 // Update a task
 app.put('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader, async (req, res) => {

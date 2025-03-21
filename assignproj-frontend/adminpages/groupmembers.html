@@ -947,10 +947,10 @@
                         isValid = false;
                         errorMessage = 'Please select a team leader';
                     }
-                    // Check if at least one member is selected
-                    else if (members.length === 0) {
+                    // Check if at least two members are selected
+                    else if (members.length < 2) {
                         isValid = false;
-                        errorMessage = 'Please select at least one member';
+                        errorMessage = 'A group must have at least 2 members';
                     }
 
                     if (!isValid) {
@@ -958,7 +958,7 @@
                         return;
                     }
 
-                    // Advanced validation: Check for duplicate group name and members in the same project
+                    // Proceed with advanced validation and group creation logic
                     try {
                         const token = localStorage.getItem('token');
 
