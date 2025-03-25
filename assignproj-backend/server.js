@@ -157,7 +157,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/user', authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'username'] // Only fetch necessary fields
+      attributes: ['id', 'username', 'isAdmin'] // Include isAdmin in the response
     });
 
     if (!user) {
@@ -626,7 +626,6 @@ const isTeamLeader = async (req, res, next) => {
   }
 };
 
-// Modify the task creation route to include notifications
 app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (req, res) => {
   const { groupId } = req.params;
   const { title, description, assignedToId, dueDate } = req.body;
@@ -660,7 +659,8 @@ app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (r
         assignedToId,
         groupId,
         task.id,
-        t
+        t,
+        req.user.id // Pass the team leader's ID as the createdBy field
       );
 
       return task;
@@ -843,58 +843,167 @@ app.delete('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader
 });
 
 
-// Send group notification (admin/professor only)
-app.post('/api/groups/:groupId/notifications', authenticateToken, async (req, res) => {
-  const { groupId } = req.params;
-  const { message } = req.body;
-
+// Project-wide notification endpoint
+app.post('/api/projects/:projectId/notifications', authenticateToken, async (req, res) => {
   if (!req.user.isAdmin) {
-    return res.status(403).json({
-      success: false,
-      message: 'Only professors can send group notifications'
-    });
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
   }
 
   try {
-    const result = await sequelize.transaction(async (t) => {
-      // Verify group exists
-      const group = await Group.findByPk(groupId);
-      if (!group) {
-        throw new Error('Group not found');
-      }
+    const notifications = await sequelize.transaction(async (t) => {
+      const project = await Project.findByPk(req.params.projectId, { transaction: t });
+      if (!project) throw new Error('Project not found');
 
-      // Get all group members including team leader
-      const groupMembers = await GroupMember.findAll({
-        where: { groupId },
+      const groups = await Group.findAll({
+        where: { projectId: project.id },
+        include: [GroupMember],
         transaction: t
       });
 
-      // Add team leader to notification recipients
-      const allRecipients = [...groupMembers, { userId: group.teamLeaderId }];
+      const recipients = new Set();
+      groups.forEach(group => {
+        group.GroupMembers.forEach(member => recipients.add(member.userId));
+        if (group.teamLeaderId) recipients.add(group.teamLeaderId);
+      });
 
-      // Create notifications for all members
-      const notifications = await Promise.all(
-        allRecipients.map(member =>
-          createNotification('group', message, member.userId, groupId, null, t, req.user.id)  // Pass createdBy
-        )
-      );
+      const notifications = [];
+      for (const userId of recipients) {
+        const notification = await createNotification(
+          'project',
+          message,
+          userId,
+          null,
+          null,
+          t,
+          req.user.id
+        );
+        notifications.push(notification);
+      }
 
       return notifications;
     });
 
     res.status(201).json({
       success: true,
-      message: 'Group notification sent successfully',
-      data: result
+      count: notifications.length,
+      notifications: notifications.map(n => ({ id: n.id, userId: n.userId }))
     });
   } catch (error) {
-    console.error('Group notification error:', error);
-    res.status(error.message.includes('not found') ? 404 : 500).json({
-      success: false,
-      message: error.message || 'Server error'
-    });
+    res.status(500).json({ error: error.message });
   }
 });
+
+// Group-specific notification endpoint
+app.post('/api/projects/:projectId/groups/:groupId/notifications', authenticateToken, async (req, res) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    const notifications = await sequelize.transaction(async (t) => {
+      const group = await Group.findOne({
+        where: {
+          id: req.params.groupId,
+          projectId: req.params.projectId
+        },
+        include: [GroupMember],
+        transaction: t
+      });
+      if (!group) throw new Error('Group not found');
+
+      const recipients = new Set(group.GroupMembers.map(m => m.userId));
+      if (group.teamLeaderId) recipients.add(group.teamLeaderId);
+
+      const notifications = [];
+      for (const userId of recipients) {
+        const notification = await createNotification(
+          'group',
+          message,
+          userId,
+          group.id,
+          null,
+          t,
+          req.user.id
+        );
+        notifications.push(notification);
+      }
+
+      return notifications;
+    });
+
+    res.status(201).json({
+      success: true,
+      count: notifications.length,
+      notifications: notifications.map(n => ({ id: n.id, userId: n.userId }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// User-specific notification endpoint
+app.post('/api/projects/:projectId/users/:userId/notifications', authenticateToken, async (req, res) => {
+  if (!req.user.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { message } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+
+  try {
+    const notification = await sequelize.transaction(async (t) => {
+      // Verify user belongs to project
+      const user = await User.findOne({
+        where: { id: req.params.userId },
+        include: [{
+          model: GroupMember,
+          include: [{
+            model: Group,
+            where: { projectId: req.params.projectId }
+          }]
+        }],
+        transaction: t
+      });
+      if (!user || !user.GroupMembers?.length) {
+        throw new Error('User not found in project');
+      }
+
+      return await createNotification(
+        'individual',
+        message,
+        user.id,
+        null,
+        null,
+        t,
+        req.user.id
+      );
+    });
+
+    res.status(201).json({
+      success: true,
+      notification: {
+        id: notification.id,
+        userId: notification.userId,
+        message: notification.message
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 
 // Get user's notifications
