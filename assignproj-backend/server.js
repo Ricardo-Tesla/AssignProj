@@ -626,6 +626,7 @@ const isTeamLeader = async (req, res, next) => {
   }
 };
 
+// Create a task for a group
 app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (req, res) => {
   const { groupId } = req.params;
   const { title, description, assignedToId, dueDate } = req.body;
@@ -656,11 +657,11 @@ app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (r
       await createNotification(
         'task',
         `You have been assigned a new task: ${title}`,
-        assignedToId,
-        groupId,
-        task.id,
-        t,
-        req.user.id // Pass the team leader's ID as the createdBy field
+        assignedToId, // Recipient
+        groupId, // Group ID
+        task.id, // Task ID
+        t, // Transaction
+        req.user.id // Created by (the team leader who assigned the task)
       );
 
       return task;
@@ -679,7 +680,6 @@ app.post('/api/groups/:groupId/tasks', authenticateToken, isTeamLeader, async (r
     });
   }
 });
-
 
 // Get all tasks for a group
 app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
@@ -876,11 +876,11 @@ app.post('/api/projects/:projectId/notifications', authenticateToken, async (req
         const notification = await createNotification(
           'project',
           message,
-          userId,
-          null,
-          null,
-          t,
-          req.user.id
+          userId, // Recipient
+          null, // Group ID
+          null, // Task ID
+          t, // Transaction
+          req.user.id // Created by (the admin who sent the notification)
         );
         notifications.push(notification);
       }
@@ -929,11 +929,11 @@ app.post('/api/projects/:projectId/groups/:groupId/notifications', authenticateT
         const notification = await createNotification(
           'group',
           message,
-          userId,
-          group.id,
-          null,
-          t,
-          req.user.id
+          userId, // Recipient
+          group.id, // Group ID
+          null, // Task ID
+          t, // Transaction
+          req.user.id // Created by (the admin who sent the notification)
         );
         notifications.push(notification);
       }
@@ -983,11 +983,11 @@ app.post('/api/projects/:projectId/users/:userId/notifications', authenticateTok
       return await createNotification(
         'individual',
         message,
-        user.id,
-        null,
-        null,
-        t,
-        req.user.id
+        user.id, // Recipient
+        null, // Group ID
+        null, // Task ID
+        t, // Transaction
+        req.user.id // Created by (the admin who sent the notification)
       );
     });
 
@@ -1038,7 +1038,7 @@ app.get('/api/admin/sent-notifications', authenticateToken, async (req, res) => 
 });
 
 
-// Get user notifications
+// Backend Notification Fetch Route 
 app.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
     const notifications = await Notification.findAll({
@@ -1434,12 +1434,14 @@ app.post('/api/tasks/:taskId/submissions',
         fileUrl: req.file.path,
         submissionTime: new Date(),
         isLate,
-        comments
+        comments,
+        status: 'Submitted' // Set submission status to "Submitted"
       });
 
-      // Update task status to 'completed'
-      await task.update({ status: 'completed' });
-
+      // Update task status to "in_progress" if it is still "pending"
+      if (task.status === 'pending') {
+        await task.update({ status: 'in_progress' });
+      }
 
       // Notify group members and professor about the submission
       const groupMembers = await GroupMember.findAll({
@@ -1456,9 +1458,11 @@ app.post('/api/tasks/:taskId/submissions',
           createNotification(
             'submission',
             `New submission for task: ${task.title}`,
-            user.userId,
-            task.Group.id,
-            taskId
+            user.userId, // Recipient
+            task.Group.id, // Group ID
+            taskId, // Task ID
+            null, // Transaction (if applicable)
+            submitterId // Created by (the user who submitted the file)
           )
         )
       );
@@ -1468,8 +1472,8 @@ app.post('/api/tasks/:taskId/submissions',
         message: 'File submitted successfully',
         data: {
           submission,
-          isLate,
-          taskStatus: 'completed'
+          taskStatus: task.status,
+          submissionStatus: 'Submitted'
         }
       });
 
@@ -1483,13 +1487,21 @@ app.post('/api/tasks/:taskId/submissions',
     }
   });
 
-// Get all submissions for a task
-app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) => {
+// Update task status (team leader only)
+app.patch('/api/tasks/:taskId/status', authenticateToken, async (req, res) => {
   const { taskId } = req.params;
+  const { status } = req.body; // Expected values: "in_progress", "completed"
   const userId = req.user.id;
 
+  if (!['in_progress', 'completed'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status. Allowed values are "in_progress" or "completed".'
+    });
+  }
+
   try {
-    // Get task and group details
+    // Check if task exists and get its details
     const task = await Task.findOne({
       where: { id: taskId },
       include: [{ model: Group }]
@@ -1502,31 +1514,137 @@ app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) =>
       });
     }
 
-    // Check if user is authorized (group member, team leader, or admin)
-    const isGroupMember = await GroupMember.findOne({
-      where: {
-        groupId: task.Group.id,
-        userId
-      }
-    });
-
-    const user = await User.findByPk(userId);
-
-    if (!isGroupMember && task.Group.teamLeaderId !== userId && !user.isAdmin) {
+    // Check if the user is the team leader
+    if (task.Group.teamLeaderId !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized to view submissions'
+        message: 'Only the team leader can update the task status'
       });
     }
 
-    // Get all submissions for the task
+    // Update the task status
+    await task.update({ status });
+
+    // If the task is marked as "completed", update all related submissions to "Reviewed"
+    if (status === 'completed') {
+      await Submission.update(
+        { status: 'Reviewed' }, // Update submission status to "Reviewed"
+        { where: { taskId } }
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Task status updated to "${status}"`,
+      data: { task }
+    });
+
+  } catch (error) {
+    console.error('Task status update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+
+// Route to get user submissions for a specific project
+app.get('/api/projects/:projectId/submissions', authenticateToken, async (req, res) => {
+  const { projectId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Find submissions for the user in the specific project
     const submissions = await Submission.findAll({
-      where: { taskId },
-      include: [{
-        model: User,
-        as: 'submitter',
-        attributes: ['username']
-      }],
+      where: {
+        submitterId: userId,
+        // Ensure you have a projectId or groupId in your Submission model
+        '$Task.Group.projectId$': projectId
+      },
+      include: [
+        {
+          model: Task,
+          attributes: ['id', 'title', 'dueDate', 'status'], // Include task status
+          include: [
+            {
+              model: Group,
+              attributes: ['id', 'projectId']
+            }
+          ]
+        }
+      ],
+      order: [['submissionTime', 'DESC']]
+    });
+
+    // Transform submissions to desired format
+    const formattedSubmissions = submissions.map(submission => ({
+      id: submission.id,
+      task: submission.Task.title,
+      sharedFile: submission.fileName,
+      deadline: submission.Task.dueDate,
+      status: submission.Task.status === 'completed' ? 'Reviewed' : 'Submitted' // Adjust status logic
+    }));
+
+    res.status(200).json({
+      success: true,
+      submissions: formattedSubmissions
+    });
+
+  } catch (error) {
+    console.error('Error retrieving submissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving submissions',
+      error: error.message
+    });
+  }
+});
+
+// Get all submissions for a specific group within a project
+app.get('/api/projects/:projectId/groups/:groupId/submissions', authenticateToken, async (req, res) => {
+  const { projectId, groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // Check if the user is a member of the group or the team leader
+    const isGroupMember = await GroupMember.findOne({
+      where: { groupId, userId }
+    });
+
+    const group = await Group.findOne({
+      where: { id: groupId, projectId } // Ensure the group belongs to the project
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: 'Group not found in the specified project'
+      });
+    }
+
+    if (!isGroupMember && group.teamLeaderId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You must be a group member or team leader to view submissions.'
+      });
+    }
+
+    // Fetch submissions for the group within the project
+    const submissions = await Submission.findAll({
+      where: { '$Task.groupId$': groupId },
+      include: [
+        {
+          model: Task,
+          attributes: ['id', 'title', 'dueDate', 'status']
+        },
+        {
+          model: User,
+          as: 'submitter',
+          attributes: ['id', 'username']
+        }
+      ],
       order: [['submissionTime', 'DESC']]
     });
 
@@ -1534,9 +1652,8 @@ app.get('/api/tasks/:taskId/submissions', authenticateToken, async (req, res) =>
       success: true,
       data: submissions
     });
-
   } catch (error) {
-    console.error('Error retrieving submissions:', error);
+    console.error('Error fetching group submissions:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
