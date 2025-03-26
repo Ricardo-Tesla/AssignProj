@@ -1004,9 +1004,41 @@ app.post('/api/projects/:projectId/users/:userId/notifications', authenticateTok
   }
 });
 
+app.get('/api/admin/sent-notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.findAndCountAll({
+      include: [
+        {
+          model: User,
+          as: 'Recipient',
+          attributes: ['id', 'username']
+        },
+        {
+          model: User,
+          as: 'Creator',
+          attributes: ['id', 'username']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 100
+    });
+
+    res.json({
+      success: true,
+      count: notifications.count,
+      data: notifications.rows
+    });
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notifications'
+    });
+  }
+});
 
 
-// Get user's notifications
+// Get user notifications
 app.get('/api/notifications', authenticateToken, async (req, res) => {
   try {
     const notifications = await Notification.findAll({
@@ -1014,22 +1046,49 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
       include: [
         {
           model: Task,
-          attributes: ['title', 'description', 'dueDate']
+          attributes: ['id', 'title', 'description'],
+          include: [{
+            model: Group,
+            attributes: ['id', 'name', 'projectId']
+          }]
         },
         {
           model: Group,
-          attributes: ['name']
+          attributes: ['id', 'name', 'projectId']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      logging: console.log  // This will log the generated SQL query
     });
+
+    // Log raw notifications before sending
+    console.log('Raw Notifications:', JSON.stringify(notifications, null, 2));
 
     res.status(200).json({
       success: true,
-      data: notifications
+      data: notifications.map(notification => ({
+        id: notification.id,
+        message: notification.message,
+        type: notification.type,
+        createdAt: notification.createdAt,
+        task: notification.Task ? {
+          id: notification.Task.id,
+          title: notification.Task.title,
+          group: notification.Task.Group ? {
+            id: notification.Task.Group.id,
+            name: notification.Task.Group.name,
+            projectId: notification.Task.Group.projectId
+          } : null
+        } : null,
+        group: notification.Group ? {
+          id: notification.Group.id,
+          name: notification.Group.name,
+          projectId: notification.Group.projectId
+        } : null
+      }))
     });
   } catch (error) {
-    console.error('Error retrieving notifications:', error);
+    console.error('Notification fetch error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

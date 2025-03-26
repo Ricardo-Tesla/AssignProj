@@ -200,6 +200,16 @@
             min-width: 200px;
         }
 
+        .col-project {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .col-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
         .col-task {
             flex: 1;
             min-width: 150px;
@@ -248,15 +258,15 @@
                 left: -250px;
                 z-index: 1000;
             }
-            
+
             .sidebar.open {
                 left: 0;
             }
-            
+
             .mobile-menu-toggle {
                 display: block;
             }
-            
+
             section {
                 width: 100%;
                 padding: 20px;
@@ -306,19 +316,16 @@
                     <div class="sidebar-user-name">Emily Johnson</div>
                 </div>
                 <div class="sidebar-nav">
-                    <a href="#" class="sidebar-nav-link">
+                    <a href="./ProjectList.html" class="sidebar-nav-link">
                         <i class="fas fa-project-diagram"></i>
                         <span>Project Details</span>
                     </a>
-                    <a href="#" class="sidebar-nav-link">
-                        <i class="fas fa-tasks"></i>
-                        <span>View Tasks</span>
-                    </a>
-                    <a href="#" class="sidebar-nav-link">
+                    
+                    <a href="./Chat.html" class="sidebar-nav-link">
                         <i class="fas fa-comments"></i>
                         <span>Group Chat</span>
                     </a>
-                    <a href="#" class="sidebar-nav-link">
+                    <a href="./SharedFile.html" class="sidebar-nav-link">
                         <i class="fas fa-file"></i>
                         <span>Shared Files</span>
                     </a>
@@ -338,42 +345,141 @@
 
         <section>
             <h1>Recent Notifications</h1>
-            
+
             <div class="notifications-table">
                 <div class="table-header">
                     <div class="col-message">Message</div>
-                    <div class="col-task">Related Task</div>
+                    <div class="col-project">Project</div>
+                    <div class="col-group">Group</div>
                     <div class="col-time">Timestamp</div>
                 </div>
-                
-                <div class="table-row">
-                    <div class="col-message">Your task "Design Homepage Layout" is due in 2 days</div>
-                    <div class="col-task"><a href="#" class="task-link">#DES-15</a></div>
-                    <div class="col-time"><span class="timestamp">2023-11-13 14:30</span></div>
-                </div>
 
-                <div class="table-row">
-                    <div class="col-message">New comment added to "Database Schema Design"</div>
-                    <div class="col-task"><a href="#" class="task-link">#DB-02</a></div>
-                    <div class="col-time"><span class="timestamp">2023-11-12 09:45</span></div>
-                </div>
-
-                <div class="table-row">
-                    <div class="col-message">Task "API Endpoint Development" status changed to In Progress</div>
-                    <div class="col-task"><a href="#" class="task-link">#DEV-08</a></div>
-                    <div class="col-time"><span class="timestamp">2023-11-11 16:20</span></div>
-                </div>
-
-                <div class="table-row">
-                    <div class="col-message">New file uploaded to project documents</div>
-                    <div class="col-task"><a href="#" class="task-link">Project Docs</a></div>
-                    <div class="col-time"><span class="timestamp">2023-11-10 11:15</span></div>
+                <div id="notifications-container">
+                    <div id="no-notifications" style="display: none;">
+                        No notifications at the moment.
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
     <script>
+
+        // API Base URL - using your port 5000
+        const API_BASE_URL = 'http://localhost:5000';
+
+        // Main JavaScript file for frontend integration with backend API
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if user is logged in (token exists)
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '../../authentication/LoginPage.html'; // Redirect to login if no token
+                return;
+            }
+
+            // Set up logout button using class selector
+            const logoutBtn = document.querySelector('.sidebar-logout-button');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function () {
+                    localStorage.removeItem('token');
+                    window.location.href = '../../authentication/LoginPage.html';
+                });
+            } else {
+                console.error("Logout button not found in the HTML");
+            }
+
+
+            // Fetch notifications immediately when page loads
+            fetchNotifications();
+
+        });
+
+        // Frontend Fetch Function (modified)
+        const fetchNotifications = async () => {
+            try {
+                const notificationsResponse = await fetch(`${API_BASE_URL}/api/notifications`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!notificationsResponse.ok) {
+                    const errorText = await notificationsResponse.text();
+                    console.error('Full error response:', errorText);
+                    throw new Error('Failed to fetch notifications');
+                }
+
+                const responseData = await notificationsResponse.json();
+                console.log('Complete Response Data:', JSON.stringify(responseData, null, 2));
+
+                const { data: notifications } = responseData;
+                console.log('Notifications Array:', JSON.stringify(notifications, null, 2));
+
+                const notificationsContainer = document.getElementById('notifications-container');
+                const noNotificationsMessage = document.getElementById('no-notifications');
+
+                notificationsContainer.innerHTML = '';
+
+                if (!notifications || notifications.length === 0) {
+                    noNotificationsMessage.style.display = 'block';
+                    return;
+                }
+
+                noNotificationsMessage.style.display = 'none';
+
+                notifications.forEach(notification => {
+                    console.log('Individual Notification:', JSON.stringify(notification, null, 2));
+
+                    const notificationRow = document.createElement('div');
+                    notificationRow.classList.add('table-row');
+
+                    // Detailed logging of each field
+                    console.log('Project:', notification.task?.group?.projectId);
+                    console.log('Group:', notification.group);
+
+                    // Extracting project details
+                    const projectName = notification.task?.group?.projectId
+                        || notification.group?.projectId
+                        || 'N/A';
+
+                    // Extracting group details
+                    const groupName = notification.group?.name
+                        || notification.task?.group?.name
+                        || 'N/A';
+
+                  
+
+                    // Format the date
+                    const formattedDate = notification.createdAt
+                        ? new Date(notification.createdAt).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })
+                        : 'N/A';
+
+                    notificationRow.innerHTML = `
+                <div class="col-message">${notification.message || 'N/A'}</div>
+                <div class="col-project">${projectName}</div>
+                <div class="col-group">${groupName}</div>
+                <div class="col-time">
+                    <span class="timestamp">${formattedDate}</span>
+                </div>
+            `;
+
+                    notificationsContainer.appendChild(notificationRow);
+                });
+            } catch (error) {
+                console.error('Complete Notification Fetch Error:', error);
+            }
+        };
+
+
+
         // Sidebar Management
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const sidebar = document.getElementById('sidebar');
@@ -388,7 +494,7 @@
         // Toggle Desktop Sidebar
         const handleSidebarToggle = () => {
             sidebar.classList.toggle('collapsed');
-            
+
             if (sidebar.classList.contains('collapsed')) {
                 toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
                 document.querySelector('section').style.marginLeft = '10px';
@@ -417,13 +523,14 @@
 
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                e.target !== mobileMenuToggle && 
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                e.target !== mobileMenuToggle &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
             }
         });
     </script>
 </body>
+
 </html>

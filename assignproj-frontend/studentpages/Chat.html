@@ -333,23 +333,19 @@
                     <div class="sidebar-user-name">Emily Johnson</div>
                 </div>
                 <div class="sidebar-nav">
-                    <a href="#" class="sidebar-nav-link">
+                    <a href="./ProjectList.html" class="sidebar-nav-link">
                         <i class="fas fa-project-diagram"></i>
                         <span>Project Details</span>
-                    </a>
-                    <a href="#" class="sidebar-nav-link">
-                        <i class="fas fa-tasks"></i>
-                        <span>View Tasks</span>
                     </a>
                     <a href="#" class="sidebar-nav-link active">
                         <i class="fas fa-comments"></i>
                         <span>Group Chat</span>
                     </a>
-                    <a href="#" class="sidebar-nav-link">
+                    <a href="./SharedFile.html" class="sidebar-nav-link">
                         <i class="fas fa-file"></i>
                         <span>Shared Files</span>
                     </a>
-                    <a href="#" class="sidebar-nav-link">
+                    <a href="./Notifications.html" class="sidebar-nav-link">
                         <i class="fas fa-bell"></i>
                         <span>Notifications</span>
                     </a>
@@ -406,6 +402,36 @@
     </main>
 
     <script>
+
+        // API Base URL - using your port 5000
+        const API_BASE_URL = 'http://localhost:5000';
+
+        // Main JavaScript file for frontend integration with backend API
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if user is logged in (token exists)
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '../../authentication/LoginPage.html'; // Redirect to login if no token
+                return;
+            }
+
+            // Set up logout button using class selector
+            const logoutBtn = document.querySelector('.sidebar-logout-button');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function () {
+                    localStorage.removeItem('token');
+                    window.location.href = '../../authentication/LoginPage.html';
+                });
+            } else {
+                console.error("Logout button not found in the HTML");
+            }
+
+
+
+        });
+
+
+
         // Sidebar Management (Same as Previous Pages)
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const sidebar = document.getElementById('sidebar');

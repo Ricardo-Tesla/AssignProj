@@ -1,5 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database'); // Adjust path as needed
+const Task = require('./Task'); // Import Task model
+const User = require('./Users'); // Import User model
 
 const Notification = sequelize.define('Notification', {
   id: {
@@ -20,32 +22,32 @@ const Notification = sequelize.define('Notification', {
     allowNull: false,
     references: {
       model: 'Users',
-      key: 'id'
-    }
+      key: 'id',
+    },
   },
   groupId: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Groups',
-      key: 'id'
-    }
+      key: 'id',
+    },
   },
   taskId: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Tasks',
-      key: 'id'
-    }
+      key: 'id',
+    },
   },
   createdBy: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
-      key: 'id'
-    }
+      key: 'id',
+    },
   },
   isRead: {
     type: DataTypes.BOOLEAN,
@@ -54,16 +56,18 @@ const Notification = sequelize.define('Notification', {
   readAt: {
     type: DataTypes.DATE,
     allowNull: true,
-  }
+  },
 }, {
   indexes: [
     { fields: ['userId'] },
     { fields: ['groupId'] },
     { fields: ['taskId'] },
     { fields: ['type'] },
-    { fields: ['isRead'] }
+    { fields: ['isRead'] },
   ],
-  timestamps: true
+  timestamps: true,
 });
+
+
 
 module.exports = Notification;

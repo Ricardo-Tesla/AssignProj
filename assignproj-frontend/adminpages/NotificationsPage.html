@@ -336,6 +336,49 @@
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
         }
 
+        /* Notification History Table Styles */
+        #notifications-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #notifications-table th,
+        #notifications-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #notifications-table th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: 600;
+        }
+
+        #notifications-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        #notifications-table td {
+            color: #555;
+        }
+
+        #notifications-table .empty-state,
+        #notifications-table .error-state {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .error-state {
+            color: #dc3545;
+        }
+
         .specific-section {
             margin-top: 1em;
         }
@@ -497,19 +540,17 @@
                 </form>
             </div>
 
-            <div id="notifications-history" class="notifications-history">
+            <div id="notifications-history">
                 <h3>Notifications History</h3>
-                <table id="notifications-table" border="1"
-                    style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                <table id="notifications-table">
                     <thead>
                         <tr>
                             <th>Date</th>
                             <th>Message</th>
-                            <th>Task</th>
                             <th>Recipient</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="notifications-table-body">
                         <!-- Notifications will be dynamically populated here -->
                     </tbody>
                 </table>
@@ -924,9 +965,76 @@
             }
         };
 
-       
 
-       
+        const fetchNotificationsHistory = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/sent-notifications`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+        
+                if (!response.ok) {
+                    throw new Error('Failed to fetch notifications history');
+                }
+        
+                const data = await response.json();
+                const notificationsTableBody = document.getElementById('notifications-table-body');
+                notificationsTableBody.innerHTML = '';
+        
+                if (data.count === 0) {
+                    notificationsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="3">
+                                No notifications history found.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+        
+                data.data.forEach((notification) => {
+                    const row = document.createElement('tr');
+        
+                    // Format the date
+                    const formattedDate = new Date(notification.createdAt).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    });
+        
+                    // Handle Recipient
+                    const recipientName = notification.Recipient
+                        ? notification.Recipient.username
+                        : 'N/A';
+        
+                    row.innerHTML = `
+                        <td>${formattedDate}</td>
+                        <td>${notification.message}</td>
+                        <td>${recipientName}</td>
+                    `;
+        
+                    notificationsTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching notifications history:', error);
+                const notificationsTableBody = document.getElementById('notifications-table-body');
+                notificationsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3">
+                            Failed to load notifications. ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        };
+
+
+
 
         // Call the function when the page loads
         document.addEventListener('DOMContentLoaded', async () => {
@@ -946,7 +1054,10 @@
             // Fetch and populate projects in the dropdown
             await fetchAndPopulateProjects();
 
-            
+            // Fetch notifications history
+            await fetchNotificationsHistory();
+
+
         });
 
 
