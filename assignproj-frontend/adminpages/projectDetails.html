@@ -177,7 +177,7 @@
             margin-bottom: 20px;
         }
 
-       
+
 
         .form-group {
             display: flex;
@@ -396,7 +396,9 @@
 
         <section>
             <h1>Create Project</h1>
+
             
+
             <div class="project-details">
                 <form id="projectForm">
                     <div class="form-group">
@@ -451,6 +453,7 @@
 
                 // Set up project form submission
                 setupProjectForm(token);
+
 
             } catch (error) {
                 console.error('Authentication failed:', error);
@@ -517,6 +520,7 @@
             });
         }
 
+        
         // Helper function to show notifications
         function showNotification(message, type = 'info') {
             // Simple implementation for notifications

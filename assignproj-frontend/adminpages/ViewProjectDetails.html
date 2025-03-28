@@ -367,7 +367,7 @@
                         throw new Error('No authentication token found');
                     }
                     
-                    const projectsRes = await fetch(`${API_BASE_URL}/api/projects`, {
+                    const projectsRes = await fetch(`${API_BASE_URL}/api/admin/projects`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
@@ -445,15 +445,21 @@
             const loadGroups = async (project) => {
                 try {
                     const token = localStorage.getItem('token');
+                    console.log('Fetching groups for project:', project.id);
+            
                     const groupsRes = await fetch(`${API_BASE_URL}/api/projects/${project.id}/groups`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    
+            
+                    console.log('Response status:', groupsRes.status);
+            
                     if (!groupsRes.ok) {
                         throw new Error(`API error: ${groupsRes.status}`);
                     }
-                    
+            
                     const groupsData = await groupsRes.json();
+                    console.log('Groups data:', groupsData);
+            
                     renderGroups(project.id, groupsData.data || groupsData); // Handle both response formats
                 } catch (error) {
                     console.error(`Error loading groups for project ${project.id}:`, error);

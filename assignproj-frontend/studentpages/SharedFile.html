@@ -164,6 +164,26 @@
             font-weight: 600;
         }
 
+        .project-selection {
+            margin-bottom: 20px;
+        }
+
+        .project-selection label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            margin-right: 10px;
+        }
+
+        #project-select {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+            width: 250px;
+        }
+
         .files-container {
             background-color: white;
             border-radius: 12px;
@@ -186,7 +206,7 @@
             overflow: hidden;
         }
 
-        .files-table th, 
+        .files-table th,
         .files-table td {
             padding: 12px 15px;
             text-align: left;
@@ -230,7 +250,7 @@
             background-color: #fdedec;
             color: #e74c3c;
         }
-        
+
         .files-table .status.reviewed {
             background-color: #eaf2f8;
             color: #3498db;
@@ -269,6 +289,35 @@
 
         .upload-new:hover {
             background-color: #1a5276;
+        }
+
+        #submit-file-btn {
+            background-color: #2980b9;
+            color: white;
+        }
+
+        #submit-file-btn:hover {
+            background-color: #39a0e4;
+        }
+
+        #cancel-file-upload-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        #cancel-file-upload-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .late-text {
+            color: #e74c3c;
+            font-weight: 500;
+        }
+
+        /* Add this to your style section */
+        #project-select {
+            color: #2c3e50;
+            background-color: white;
         }
 
         .mobile-menu-toggle {
@@ -320,7 +369,7 @@
                 overflow-x: auto;
             }
 
-            .files-table th, 
+            .files-table th,
             .files-table td {
                 padding: 10px;
                 font-size: 13px;
@@ -331,8 +380,8 @@
             .files-container h2 {
                 font-size: 18px;
             }
-            
-            .files-table th, 
+
+            .files-table th,
             .files-table td {
                 padding: 8px;
                 font-size: 12px;
@@ -354,7 +403,7 @@
                 </button>
                 <div class="sidebar-user">
                     <div class="sidebar-user-icon">👨🎓</div>
-                    <div class="sidebar-user-name">Emily Johnson</div>
+                    <div class="sidebar-user-name" id="user-name">User</div>
                 </div>
                 <div class="sidebar-nav">
                     <a href="./ProjectList.html" class="sidebar-nav-link">
@@ -384,57 +433,65 @@
         </nav>
 
         <section>
+
+            <div class="project-selection">
+                <label for="project-select">Select Project:</label>
+                <select id="project-select">
+                    <option value="" disabled selected>Select a project</option>
+                    <!-- Projects will be dynamically populated here -->
+                </select>
+            </div>
+
             <h1>Shared Files</h1>
-        
+
             <div class="files-container">
                 <h2>My Shared Files</h2>
-                <table class="files-table">
+                <!-- My Submissions Table -->
+                <table id="my-shared-files-table">
                     <thead>
                         <tr>
                             <th>Task</th>
-                            <th>Shared File</th>
-                            <th>Deadline</th>
+                            <th>File</th>
+                            <th>Due Date</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="my-shared-files-body">
-                        <!-- Dynamic data will be inserted here -->
-                    </tbody>
+                    <tbody id="my-shared-files-body"></tbody>
                 </table>
                 <button class="upload-new">
                     <i class="fas fa-upload"></i>
                     Upload New File
                 </button>
             </div>
-        
+
             <div class="files-container">
                 <h2>Group Shared Files</h2>
-                <table class="files-table">
+                <!-- Group Submissions Table -->
+                <table id="group-shared-files-table">
                     <thead>
                         <tr>
-                            <th>Student</th>
                             <th>Task</th>
-                            <th>Shared File</th>
-                            <th>Deadline</th>
+                            <th>File</th>
+                            <th>Due Date</th>
+                            <th>Submitted By</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="group-shared-files-body">
-                        <!-- Dynamic data will be inserted here -->
-                    </tbody>
+                    <tbody id="group-shared-files-body"></tbody>
                 </table>
             </div>
         </section>
     </main>
 
+
     <script>
 
 
-        // API Base URL - using your port 5000
+        // API Base URL
         const API_BASE_URL = 'http://localhost:5000';
 
         // Main JavaScript file for frontend integration with backend API
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             // Check if user is logged in (token exists)
             const token = localStorage.getItem('token');
             if (!token) {
@@ -442,7 +499,7 @@
                 return;
             }
 
-            // Set up logout button using class selector
+            // Set up logout button
             const logoutBtn = document.querySelector('.sidebar-logout-button');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function () {
@@ -453,10 +510,228 @@
                 console.error("Logout button not found in the HTML");
             }
 
+            // Load user info
+            await loadUserInfo(token);
 
-          
+            // Fetch and populate projects
+            const projects = await fetchProjects(token);
+            populateProjectDropdown(projects);
+
+            // Handle project selection
+            const projectSelect = document.getElementById('project-select');
+            projectSelect.addEventListener('change', async (event) => {
+                const projectId = event.target.value;
+
+                if (!projectId) {
+                    console.warn('No project selected');
+                    return;
+                }
+
+                // Load user submissions
+                await loadUserSubmissions(projectId, token);
+
+                // Fetch user group and load group submissions
+                const group = await fetchUserGroup(projectId, token);
+                if (group) {
+                    await loadGroupSubmissions(projectId, group.id, token);
+                } else {
+                    console.warn('No group found for the selected project');
+                    document.getElementById('group-shared-files-body').innerHTML = '<tr><td colspan="5">No group submissions found</td></tr>';
+                }
+            });
 
         });
+
+        async function loadUserInfo(token) {
+            try {
+                const response = await fetch('http://localhost:5000/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user information');
+                }
+
+                const userData = await response.json();
+
+                // Find the user-name element
+                const userNameElement = document.getElementById('user-name');
+                if (userNameElement) {
+                    // Update user name in the sidebar
+                    if (userData.success && userData.data) {
+                        userNameElement.textContent = userData.data.username;
+                    } else {
+                        userNameElement.textContent = 'User';
+                    }
+                } else {
+                    console.warn('User name element not found in the DOM');
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+
+        async function fetchProjects(token) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch projects');
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    console.log('Projects fetched:', result.data); // Debugging log
+                    return result.data; // List of projects
+                } else {
+                    console.warn('No projects found for the user');
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error fetching projects:', error);
+                return [];
+            }
+        }
+
+        function populateProjectDropdown(projects) {
+            const projectSelect = document.getElementById('project-select');
+            projectSelect.innerHTML = '<option value="" disabled selected>Select a project</option>'; // Reset dropdown
+
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id; // Ensure this matches the project ID from the backend
+                option.textContent = project.name; // Ensure this matches the project name from the backend
+                projectSelect.appendChild(option);
+            });
+        }
+
+        async function fetchUserGroup(projectId, token) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/projects/${projectId}/mygroup`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    console.warn('Error fetching user group');
+                    return null;
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    return result.data;
+                } else {
+                    console.warn('No group data found for this user');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching group details:', error);
+                return null;
+            }
+        }
+
+        // Updated loadUserSubmissions function
+async function loadUserSubmissions(projectId, token) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/projects/${projectId}/submissions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch submissions');
+
+        const result = await response.json();
+        const submissionsBody = document.getElementById('my-shared-files-body');
+        submissionsBody.innerHTML = '';
+
+        if (result.success && result.submissions) {
+            result.submissions.forEach(submission => {
+                const row = document.createElement('tr');
+                const dueDate = new Date(submission.dueDate);
+                const submissionDate = new Date(submission.submissionTime);
+                const isLate = submissionDate > dueDate;
+                const fileName = submission.sharedFile.split('/').pop(); // Extract filename
+
+                row.innerHTML = `
+                    <td>${submission.task}</td>
+                    <td>
+                        <a href="/uploads/${submission.sharedFile}" class="file-link" target="_blank">
+                            <i class="fas fa-file"></i> ${fileName}
+                        </a>
+                    </td>
+                    <td>${dueDate.toLocaleDateString()}</td>
+                    <td>
+                        <span class="status ${submission.status.toLowerCase()}">
+                            ${submission.status}${isLate ? '<span class="late-text">(late)</span>' : ''}
+                        </span>
+                    </td>
+                `;
+                submissionsBody.appendChild(row);
+            });
+        } else {
+            submissionsBody.innerHTML = '<tr><td colspan="4">No submissions found</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading submissions:', error);
+        submissionsBody.innerHTML = '<tr><td colspan="4">Failed to load submissions</td></tr>';
+    }
+}
+
+// Updated loadGroupSubmissions function
+async function loadGroupSubmissions(projectId, groupId, token) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/projects/${projectId}/groups/${groupId}/submissions`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch group submissions');
+
+        const result = await response.json();
+        const submissionsBody = document.getElementById('group-shared-files-body');
+        submissionsBody.innerHTML = '';
+
+        if (result.success && result.data) {
+            result.data.forEach(submission => {
+                const row = document.createElement('tr');
+                const dueDate = new Date(submission.Task.dueDate);
+                const submissionDate = new Date(submission.submissionTime);
+                const isLate = submissionDate > dueDate;
+                const fileName = submission.fileName.split('/').pop(); // Extract filename
+
+                row.innerHTML = `
+                    <td>${submission.Task.title}</td>
+                    <td>
+                        <a href="${submission.fileUrl}" class="file-link" target="_blank">
+                            <i class="fas fa-file"></i> ${fileName}
+                        </a>
+                    </td>
+                    <td>${dueDate.toLocaleDateString()}</td>
+                    <td>${submission.submitter?.username || 'Unknown'}</td>
+                    <td>
+                        <span class="status ${submission.status.toLowerCase()}">
+                            ${submission.status}${isLate ? ' <span class="late-text">(late)</span>' : ''}
+                        </span>
+                    </td>
+                `;
+                submissionsBody.appendChild(row);
+            });
+        } else {
+            submissionsBody.innerHTML = '<tr><td colspan="5">No submissions found</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading group submissions:', error);
+        submissionsBody.innerHTML = '<tr><td colspan="5">Failed to load submissions</td></tr>';
+    }
+}
+
 
 
 

@@ -200,7 +200,8 @@
             color: #2c3e50;
         }
 
-        .filter-group select, .filter-group input {
+        .filter-group select,
+        .filter-group input {
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 5px;
@@ -237,7 +238,8 @@
             overflow: hidden;
         }
 
-        .submissions-table th, .submissions-table td {
+        .submissions-table th,
+        .submissions-table td {
             padding: 15px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -317,15 +319,15 @@
                 left: -250px;
                 transition: left 0.3s ease;
             }
-            
+
             .sidebar.open {
                 left: 0;
             }
-            
+
             .mobile-menu-toggle {
                 display: block;
             }
-            
+
             section {
                 width: 100%;
                 padding: 20px;
@@ -333,10 +335,11 @@
                 max-width: 100%;
             }
 
-            .submissions-table th, .submissions-table td {
+            .submissions-table th,
+            .submissions-table td {
                 padding: 10px;
             }
-            
+
             .filter-group {
                 min-width: 100%;
             }
@@ -346,8 +349,9 @@
             h1 {
                 font-size: 24px;
             }
-            
-            .submissions-table th, .submissions-table td {
+
+            .submissions-table th,
+            .submissions-table td {
                 font-size: 14px;
                 padding: 8px;
             }
@@ -371,23 +375,28 @@
                     <div class="sidebar-user-name">Professor</div>
                 </div>
                 <div class="sidebar-nav">
-                    <a href="/create-project" class="sidebar-nav-link">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Create Project</span>
-                    </a>
-                    <a href="/view-projects" class="sidebar-nav-link">
+
+                    <a href="./ViewProjectDetails.html" class="sidebar-nav-link">
                         <i class="fas fa-eye"></i>
                         <span>View Project Details</span>
                     </a>
-                    <a href="/monitor-progress" class="sidebar-nav-link">
+                    <a href="./projectDetails.html" class="sidebar-nav-link">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Project</span>
+                    </a>
+                    <a href="./groupmembers.html" class="sidebar-nav-link">
+                        <i class="fas fa-eye"></i>
+                        <span>Assign Groups</span>
+                    </a>
+                    <a href="./monitorGroupProgress.html" class="sidebar-nav-link">
                         <i class="fas fa-chart-line"></i>
                         <span>Monitor Group Progress</span>
                     </a>
-                    <a href="/track-submissions" class="sidebar-nav-link active">
+                    <a href="#" class="sidebar-nav-link active">
                         <i class="fas fa-tasks"></i>
                         <span>Track Submissions</span>
                     </a>
-                    <a href="/notifications" class="sidebar-nav-link">
+                    <a href="./NotificationsPage.html" class="sidebar-nav-link">
                         <i class="fas fa-bell"></i>
                         <span>Notifications</span>
                     </a>
@@ -403,135 +412,63 @@
 
         <section>
             <h1>Track Submissions</h1>
-            
+
             <div class="submission-filters">
+                <div class="filter-group">
+                    <label for="project-filter">Project</label>
+                    <select id="project-filter">
+                        <option value="all">All Projects</option>
+                    </select>
+                </div>
+
                 <div class="filter-group">
                     <label for="group-filter">Group</label>
                     <select id="group-filter">
                         <option value="all">All Groups</option>
-                        <option value="group1">Group 1</option>
-                        <option value="group2">Group 2</option>
                     </select>
                 </div>
-                
+
                 <div class="filter-group">
                     <label for="member-filter">Member</label>
                     <select id="member-filter">
                         <option value="all">All Members</option>
-                        <option value="alex">Alex Johnson</option>
-                        <option value="jamie">Jamie Smith</option>
-                        <option value="taylor">Taylor Wilson</option>
-                        <option value="morgan">Morgan Lee</option>
-                        <option value="jordan">Jordan Davis</option>
-                        <option value="casey">Casey Martinez</option>
-                        <option value="riley">Riley Thompson</option>
-                        <option value="avery">Avery Garcia</option>
                     </select>
                 </div>
-                
+
                 <div class="filter-group">
                     <label for="date-from">Date From</label>
-                    <input type="date" id="date-from" value="2023-11-01">
+                    <input type="date" id="date-from">
                 </div>
-                
+
                 <div class="filter-group">
                     <label for="date-to">Date To</label>
-                    <input type="date" id="date-to" value="2023-11-30">
+                    <input type="date" id="date-to">
                 </div>
-                
+
                 <button class="filter-button">
                     <i class="fas fa-filter"></i> Apply Filters
                 </button>
             </div>
-            
+
             <div class="submissions-container">
                 <table class="submissions-table">
                     <thead>
                         <tr>
+                            <th>Project</th>
                             <th>Group</th>
                             <th>Member</th>
                             <th>Task</th>
                             <th>Submission</th>
                             <th>Submission Time</th>
+                            <th>Due Date</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Group 1</td>
-                            <td>Alex Johnson</td>
-                            <td>Frontend: Homepage Design</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-pdf"></i> Homepage_Design_Report.pdf
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 14, 2023 - 14:32</td>
-                            <td class="on-time">On Time</td>
-                        </tr>
-                        <tr>
-                            <td>Group 1</td>
-                            <td>Taylor Wilson</td>
-                            <td>Backend: Database Setup</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-word"></i> Database_Setup_Documentation.docx
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 17, 2023 - 09:15</td>
-                            <td class="on-time">On Time</td>
-                        </tr>
-                        <tr>
-                            <td>Group 1</td>
-                            <td>Jamie Smith</td>
-                            <td>Frontend: Navigation & User Dashboard</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-archive"></i> Navigation_Progress.zip
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 18, 2023 - 21:45</td>
-                            <td class="on-time">On Time</td>
-                        </tr>
-                        <tr>
-                            <td>Group 2</td>
-                            <td>Jordan Davis</td>
-                            <td>Frontend: UI/UX Design</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-image"></i> UI_UX_Designs.zip
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 15, 2023 - 10:28</td>
-                            <td class="on-time">On Time</td>
-                        </tr>
-                        <tr>
-                            <td>Group 2</td>
-                            <td>Casey Martinez</td>
-                            <td>Frontend: Course Content Pages</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-code"></i> Course_Content_Implementation.pdf
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 20, 2023 - 16:12</td>
-                            <td class="on-time">On Time</td>
-                        </tr>
-                        <tr>
-                            <td>Group 2</td>
-                            <td>Riley Thompson</td>
-                            <td>Backend: Authentication System</td>
-                            <td>
-                                <a href="#" class="file-link">
-                                    <i class="fas fa-file-pdf"></i> Auth_System_Report.pdf
-                                </a>
-                            </td>
-                            <td class="submission-time">Nov 22, 2023 - 08:55</td>
-                            <td class="late">Late (2 days)</td>
-                        </tr>
+                        <!-- Rows will be dynamically populated -->
                     </tbody>
                 </table>
-                
+
                 <div class="pagination">
                     <button><i class="fas fa-chevron-left"></i></button>
                     <button class="active">1</button>
@@ -544,18 +481,215 @@
     </main>
 
     <script>
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const API_BASE_URL = 'http://localhost:5000';
+
+            // Check authentication
+            const checkAuth = async () => {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '../../authentication/LoginPage.html';
+                    return false;
+                }
+
+                try {
+                    const userRes = await fetch(`${API_BASE_URL}/api/user`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!userRes.ok) {
+                        throw new Error('Authentication failed');
+                    }
+
+                    return true;
+                } catch (error) {
+                    console.error('Auth error:', error);
+                    localStorage.removeItem('token');
+                    window.location.href = '../../authentication/LoginPage.html';
+                    return false;
+                }
+            };
+
+            // Fetch submissions from the backend
+            const fetchSubmissions = async (token, filters = {}) => {
+                try {
+                    const queryParams = new URLSearchParams(filters).toString();
+                    const response = await fetch(`${API_BASE_URL}/api/admin/submissions?${queryParams}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch submissions');
+                    }
+
+                    const result = await response.json();
+                    return result.data; // Assuming the backend returns submissions in `data`
+                } catch (error) {
+                    console.error('Error fetching submissions:', error);
+                    return [];
+                }
+            };
+
+            // Fetch projects, groups, and members for filters
+            const fetchProjects = async (token) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/projects`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch projects');
+                    }
+
+                    const result = await response.json();
+                    return result.data; // Assuming the backend returns projects in `data`
+                } catch (error) {
+                    console.error('Error fetching projects:', error);
+                    return [];
+                }
+            };
+
+            // Populate filters dynamically
+            const populateFilters = (projects, submissions) => {
+                const projectFilter = document.getElementById('project-filter');
+                const groupFilter = document.getElementById('group-filter');
+                const memberFilter = document.getElementById('member-filter');
+
+                // Populate project filter
+                projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.title;
+                    projectFilter.appendChild(option);
+                });
+
+                // Populate group and member filters based on submissions
+                const groups = [...new Set(submissions.map(sub => sub.group?.name))];
+                const members = [...new Set(submissions.map(sub => sub.submitter?.username))];
+
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group;
+                    option.textContent = group;
+                    groupFilter.appendChild(option);
+                });
+
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member;
+                    option.textContent = member;
+                    memberFilter.appendChild(option);
+                });
+            };
+
+            // Populate the table with submissions
+            const populateTable = (submissions) => {
+                const submissionsTableBody = document.querySelector('.submissions-table tbody');
+                submissionsTableBody.innerHTML = ''; // Clear existing rows
+
+                if (submissions.length === 0) {
+                    submissionsTableBody.innerHTML = '<tr><td colspan="8">No submissions found</td></tr>';
+                    return;
+                }
+
+                submissions.forEach(submission => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${submission.group?.project?.title || 'Unknown'}</td>
+                        <td>${submission.group?.name || 'Unknown'}</td>
+                        <td>${submission.submitter?.username || 'Unknown'}</td>
+                        <td>${submission.task?.title || 'Unknown'}</td>
+                        <td>
+                            <a href="${submission.fileUrl}" class="file-link" target="_blank">
+                                <i class="fas fa-file"></i> ${submission.fileName || 'File'}
+                            </a>
+                        </td>
+                        <td>${new Date(submission.submissionTime).toLocaleString()}</td>
+                        <td>${submission.task?.dueDate ? new Date(submission.task.dueDate).toLocaleDateString() : 'Unknown'}</td> <!-- Due Date -->
+                        <td class="${submission.isLate ? 'late' : 'on-time'}">
+                            ${submission.status}${submission.isLate ? ' (Late)' : ''}
+                        </td>
+                    `;
+
+                    submissionsTableBody.appendChild(row);
+                });
+            };
+
+            // Apply filters to the submissions
+            const applyFilters = (submissions) => {
+                const projectFilter = document.getElementById('project-filter').value;
+                const groupFilter = document.getElementById('group-filter').value;
+                const memberFilter = document.getElementById('member-filter').value;
+                const dateFromFilter = new Date(document.getElementById('date-from').value);
+                const dateToFilter = new Date(document.getElementById('date-to').value);
+
+                return submissions.filter(submission => {
+                    const submissionDate = new Date(submission.submissionTime);
+
+                    const matchesProject = projectFilter === 'all' || submission.group?.project?.id === parseInt(projectFilter);
+                    const matchesGroup = groupFilter === 'all' || submission.group?.name === groupFilter;
+                    const matchesMember = memberFilter === 'all' || submission.submitter?.username === memberFilter;
+                    const matchesDateFrom = isNaN(dateFromFilter.getTime()) || submissionDate >= dateFromFilter;
+                    const matchesDateTo = isNaN(dateToFilter.getTime()) || submissionDate <= dateToFilter;
+
+                    return matchesProject && matchesGroup && matchesMember && matchesDateFrom && matchesDateTo;
+                });
+            };
+
+            // Initialize page
+            const init = async () => {
+                const isAuthenticated = await checkAuth();
+                if (!isAuthenticated) return;
+
+                const token = localStorage.getItem('token');
+                const projects = await fetchProjects(token);
+                const submissions = await fetchSubmissions(token);
+
+                // Populate filters dynamically
+                populateFilters(projects, submissions);
+
+                // Populate the table with all submissions
+                populateTable(submissions);
+
+                // Add filter functionality
+                const filterButton = document.querySelector('.filter-button');
+                filterButton.addEventListener('click', () => {
+                    const filteredSubmissions = applyFilters(submissions);
+                    populateTable(filteredSubmissions);
+                });
+            };
+
+            // Start the app
+            init();
+        });
+
+
+
+        // Logout button functionality
+        document.querySelector('.sidebar-logout-button').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '../../authentication/LoginPage.html';
+        });
+
+
         // Toggle sidebar on mobile
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const sidebar = document.getElementById('sidebar');
-        
+
         mobileMenuToggle.addEventListener('click', () => {
             sidebar.classList.toggle('open');
         });
-        
+
         // Toggle sidebar collapse on desktop
         const toggleSidebar = document.getElementById('toggle-sidebar');
         const toggleIcon = document.getElementById('toggle-icon');
-        
+
         const updateToggleVisibility = () => {
             if (window.innerWidth > 768) {
                 toggleSidebar.style.display = 'block';
@@ -563,13 +697,13 @@
                 toggleSidebar.style.display = 'none';
             }
         };
-        
+
         updateToggleVisibility();
         window.addEventListener('resize', updateToggleVisibility);
-        
+
         toggleSidebar.addEventListener('click', () => {
             sidebar.classList.toggle('collapsed');
-            
+
             if (sidebar.classList.contains('collapsed')) {
                 toggleIcon.classList.remove('fa-chevron-left');
                 toggleIcon.classList.add('fa-chevron-right');
@@ -582,16 +716,17 @@
                 document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
             }
         });
-        
+
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && 
-                !sidebar.contains(e.target) && 
-                e.target !== mobileMenuToggle && 
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                e.target !== mobileMenuToggle &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
             }
         });
     </script>
 </body>
+
 </html>

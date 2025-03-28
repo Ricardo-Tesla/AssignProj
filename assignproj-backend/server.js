@@ -326,16 +326,47 @@ app.get('/api/projects/:projectId', authenticateToken, async (req, res) => {
   }
 });
 
-// Get all projects
+// Get all projects for the current user
 app.get('/api/projects', authenticateToken, async (req, res) => {
   try {
-    const projects = await Project.findAll();
-    res.status(200).json({ success: true, data: projects });
+      const userId = req.user.id;
+      
+      // Find projects where user is a member or team leader
+      const groups = await GroupMember.findAll({ 
+          where: { userId },
+          include: [{ model: Group, include: [Project] }]
+      });
+
+      const projects = groups.map(g => g.Group.Project);
+      
+      res.status(200).json({ 
+          success: true, 
+          data: projects 
+      });
   } catch (error) {
-    console.error('Error fetching projects:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+      console.error('Error fetching projects:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+app.get('/api/admin/projects', authenticateToken, async (req, res) => {
+  try {
+      const user = await User.findByPk(req.user.id);
+      if (!user || !user.isAdmin) {
+          return res.status(403).json({
+              success: false,
+              message: 'Access denied. Admin privileges required.'
+          });
+      }
+
+      const projects = await Project.findAll();
+      res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+      console.error('Error fetching projects:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 
 // GET route to retrieve all groups for a specific project
 app.get('/api/projects/:projectId/groups', authenticateToken, async (req, res) => {
@@ -747,17 +778,24 @@ app.get('/api/groups/:groupId/tasks', authenticateToken, async (req, res) => {
 });
 
 
-// Update a task
-app.put('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader, async (req, res) => {
-  const { groupId, taskId } = req.params;
-  const { title, description, assignedToId, status, dueDate } = req.body;
+// Update task status (team leader only)
+app.patch('/api/tasks/:taskId/status', authenticateToken, async (req, res) => {
+  const { taskId } = req.params;
+  const { status } = req.body; // Expected values: "in_progress", "completed"
+  const userId = req.user.id;
+
+  if (!['in_progress', 'completed'].includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status. Allowed values are "in_progress" or "completed".'
+    });
+  }
 
   try {
+    // Check if task exists and get its details
     const task = await Task.findOne({
-      where: {
-        id: taskId,
-        groupId
-      }
+      where: { id: taskId },
+      include: [{ model: Group }]
     });
 
     if (!task) {
@@ -767,38 +805,33 @@ app.put('/api/groups/:groupId/tasks/:taskId', authenticateToken, isTeamLeader, a
       });
     }
 
-    if (assignedToId) {
-      // Verify that new assignedTo user is a member of the group
-      const groupMember = await GroupMember.findOne({
-        where: {
-          groupId,
-          userId: assignedToId
-        }
+    // Check if the user is the team leader
+    if (task.Group.teamLeaderId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the team leader can update the task status'
       });
-
-      if (!groupMember) {
-        return res.status(400).json({
-          success: false,
-          message: 'Assigned user is not a member of this group'
-        });
-      }
     }
 
-    await task.update({
-      title: title || task.title,
-      description: description || task.description,
-      assignedToId: assignedToId || task.assignedToId,
-      status: status || task.status,
-      dueDate: dueDate || task.dueDate
-    });
+    // Update the task status
+    await task.update({ status });
+
+    // If the task is marked as "completed", update all related submissions to "Reviewed"
+    if (status === 'completed') {
+      await Submission.update(
+        { status: 'Reviewed' }, // Update submission status to "Reviewed"
+        { where: { taskId } }
+      );
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Task updated successfully',
-      data: task
+      message: `Task status updated to "${status}"`,
+      data: { task }
     });
+
   } catch (error) {
-    console.error('Task update error:', error);
+    console.error('Task status update error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -1203,6 +1236,9 @@ app.post('/api/groups/:groupId/messages', authenticateToken, async (req, res) =>
   const senderId = req.user.id;
 
   try {
+    // Log the incoming data
+    console.log('Saving message:', { content, groupId, senderId });
+
     // Check if user is a member of the group or team leader
     const isGroupMember = await GroupMember.findOne({
       where: { groupId, userId: senderId }
@@ -1237,40 +1273,13 @@ app.post('/api/groups/:groupId/messages', authenticateToken, async (req, res) =>
       }]
     });
 
-    // Create notifications for all group members except sender
-    const groupMembers = await GroupMember.findAll({
-      where: { groupId }
-    });
-
-    // Include team leader in recipients if not the sender
-    const allRecipients = [...groupMembers];
-    if (group.teamLeaderId !== senderId) {
-      allRecipients.push({ userId: group.teamLeaderId });
-    }
-
-    // Filter out the sender
-    const recipients = allRecipients.filter(member => member.userId !== senderId);
-
-    // Create notifications
-    await Promise.all(
-      recipients.map(member =>
-        createNotification(
-          'chat',
-          `New message in group chat`,
-          member.userId,
-          groupId,
-          null
-        )
-      )
-    );
-
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
       data: messageWithSender
     });
   } catch (error) {
-    console.error('Message sending error:', error);
+    console.error('Message saving error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -1279,7 +1288,37 @@ app.post('/api/groups/:groupId/messages', authenticateToken, async (req, res) =>
   }
 });
 
-// Get messages for a group
+
+// Fetch groups the user is a member of
+app.get('/api/user/groups', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+      const groups = await Group.findAll({
+          include: [
+              {
+                  model: GroupMember,
+                  where: { userId },
+                  attributes: [] // Exclude GroupMember details
+              }
+          ],
+          attributes: ['id', 'name'] // Only return group ID and name
+      });
+
+      res.status(200).json({
+          success: true,
+          data: groups
+      });
+  } catch (error) {
+      console.error('Error fetching user groups:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to fetch groups'
+      });
+  }
+});
+
+
 app.get('/api/groups/:groupId/messages', authenticateToken, async (req, res) => {
   const { groupId } = req.params;
   const userId = req.user.id;
@@ -1303,9 +1342,7 @@ app.get('/api/groups/:groupId/messages', authenticateToken, async (req, res) => 
     }
 
     // Build query conditions
-    const whereConditions = {
-      groupId
-    };
+    const whereConditions = { groupId };
 
     if (before) {
       whereConditions.timestamp = {
@@ -1316,11 +1353,13 @@ app.get('/api/groups/:groupId/messages', authenticateToken, async (req, res) => 
     // Fetch messages with sender information
     const messages = await Message.findAll({
       where: whereConditions,
-      include: [{
-        model: User,
-        as: 'sender',
-        attributes: ['username']
-      }],
+      include: [
+        {
+          model: User,
+          as: 'sender',
+          attributes: ['username']
+        }
+      ],
       order: [['timestamp', 'DESC']],
       limit: parseInt(limit)
     });
@@ -1487,118 +1526,64 @@ app.post('/api/tasks/:taskId/submissions',
     }
   });
 
-// Update task status (team leader only)
-app.patch('/api/tasks/:taskId/status', authenticateToken, async (req, res) => {
-  const { taskId } = req.params;
-  const { status } = req.body; // Expected values: "in_progress", "completed"
-  const userId = req.user.id;
-
-  if (!['in_progress', 'completed'].includes(status)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid status. Allowed values are "in_progress" or "completed".'
-    });
-  }
-
-  try {
-    // Check if task exists and get its details
-    const task = await Task.findOne({
-      where: { id: taskId },
-      include: [{ model: Group }]
-    });
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
-    }
-
-    // Check if the user is the team leader
-    if (task.Group.teamLeaderId !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only the team leader can update the task status'
-      });
-    }
-
-    // Update the task status
-    await task.update({ status });
-
-    // If the task is marked as "completed", update all related submissions to "Reviewed"
-    if (status === 'completed') {
-      await Submission.update(
-        { status: 'Reviewed' }, // Update submission status to "Reviewed"
-        { where: { taskId } }
-      );
-    }
-
-    res.status(200).json({
-      success: true,
-      message: `Task status updated to "${status}"`,
-      data: { task }
-    });
-
-  } catch (error) {
-    console.error('Task status update error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-});
 
 
-// Route to get user submissions for a specific project
+// Get all submissions for a specific project (via tasks)
 app.get('/api/projects/:projectId/submissions', authenticateToken, async (req, res) => {
   const { projectId } = req.params;
   const userId = req.user.id;
 
   try {
-    // Find submissions for the user in the specific project
-    const submissions = await Submission.findAll({
-      where: {
-        submitterId: userId,
-        // Ensure you have a projectId or groupId in your Submission model
-        '$Task.Group.projectId$': projectId
-      },
-      include: [
-        {
-          model: Task,
-          attributes: ['id', 'title', 'dueDate', 'status'], // Include task status
-          include: [
-            {
+      // Verify user is part of the project
+      const userGroups = await GroupMember.findAll({
+          where: { userId },
+          include: [{
               model: Group,
-              attributes: ['id', 'projectId']
-            }
+              where: { projectId },
+              include: [Task]
+          }]
+      });
+
+      if (!userGroups.length) {
+          return res.status(403).json({
+              success: false,
+              message: 'Not enrolled in any group for this project'
+          });
+      }
+
+      // Get all task IDs from user's groups
+      const taskIds = userGroups.flatMap(group => 
+          group.Group.Tasks.map(task => task.id)
+      );
+
+      // Fetch user's submissions for these tasks
+      const submissions = await Submission.findAll({
+          where: { 
+              taskId: taskIds,
+              submitterId: userId
+          },
+          include: [
+              {
+                  model: Task,
+                  attributes: ['title', 'dueDate']
+              }
           ]
-        }
-      ],
-      order: [['submissionTime', 'DESC']]
-    });
+      });
 
-    // Transform submissions to desired format
-    const formattedSubmissions = submissions.map(submission => ({
-      id: submission.id,
-      task: submission.Task.title,
-      sharedFile: submission.fileName,
-      deadline: submission.Task.dueDate,
-      status: submission.Task.status === 'completed' ? 'Reviewed' : 'Submitted' // Adjust status logic
-    }));
-
-    res.status(200).json({
-      success: true,
-      submissions: formattedSubmissions
-    });
+      res.status(200).json({
+          success: true,
+          submissions: submissions.map(s => ({
+              task: s.Task.title,
+              dueDate: s.Task.dueDate,
+              sharedFile: s.fileUrl,
+              submissionTime: s.submissionTime,
+              status: s.status
+          }))
+      });
 
   } catch (error) {
-    console.error('Error retrieving submissions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error retrieving submissions',
-      error: error.message
-    });
+      console.error('Error:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -1624,16 +1609,23 @@ app.get('/api/projects/:projectId/groups/:groupId/submissions', authenticateToke
       });
     }
 
-    if (!isGroupMember && group.teamLeaderId !== userId) {
+    // If the user is an admin, only allow access to submissions with status "Reviewed"
+    const user = await User.findByPk(userId);
+    const statusFilter = user.isAdmin ? { status: 'Reviewed' } : {};
+
+    if (!isGroupMember && group.teamLeaderId !== userId && !user.isAdmin) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied. You must be a group member or team leader to view submissions.'
+        message: 'Access denied. You must be a group member, team leader, or admin to view submissions.'
       });
     }
 
     // Fetch submissions for the group within the project
     const submissions = await Submission.findAll({
-      where: { '$Task.groupId$': groupId },
+      where: {
+        '$Task.groupId$': groupId,
+        ...statusFilter // Apply the status filter for admins
+      },
       include: [
         {
           model: Task,
@@ -1654,6 +1646,112 @@ app.get('/api/projects/:projectId/groups/:groupId/submissions', authenticateToke
     });
   } catch (error) {
     console.error('Error fetching group submissions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+
+
+// Get all submissions for the admin
+app.get('/api/admin/submissions', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    // Check if the user is an admin
+    const user = await User.findByPk(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Extract optional filters from query parameters
+    const { projectId, groupId, taskId, status } = req.query;
+
+    // Build the filter conditions
+    const whereConditions = {};
+    if (status) whereConditions.status = status;
+    if (taskId) whereConditions.taskId = taskId;
+
+    // Include models for filtering and data enrichment
+    const includeModels = [
+      {
+        model: Task,
+        attributes: ['id', 'title', 'dueDate', 'status'],
+        include: [
+          {
+            model: Group,
+            attributes: ['id', 'name', 'projectId'],
+            include: [
+              {
+                model: Project,
+                attributes: ['id', 'title']
+              }
+            ]
+          }
+        ]
+      },
+      {
+        model: User,
+        as: 'submitter',
+        attributes: ['id', 'username']
+      }
+    ];
+
+    // Add group and project filters if provided
+    if (groupId) {
+      includeModels[0].include[0].where = { id: groupId };
+    }
+    if (projectId) {
+      includeModels[0].include[0].include[0].where = { id: projectId };
+    }
+
+    // Fetch submissions
+    const submissions = await Submission.findAll({
+      where: whereConditions,
+      include: includeModels,
+      order: [['submissionTime', 'DESC']]
+    });
+
+    // Format the response
+    const formattedSubmissions = submissions.map(submission => ({
+      id: submission.id,
+      fileName: submission.fileName,
+      fileUrl: submission.fileUrl,
+      submissionTime: submission.submissionTime,
+      status: submission.status,
+      isLate: submission.isLate,
+      task: submission.Task ? {
+        id: submission.Task.id,
+        title: submission.Task.title,
+        dueDate: submission.Task.dueDate,
+        status: submission.Task.status
+      } : null,
+      group: submission.Task && submission.Task.Group ? {
+        id: submission.Task.Group.id,
+        name: submission.Task.Group.name,
+        project: submission.Task.Group.Project ? {
+          id: submission.Task.Group.Project.id,
+          title: submission.Task.Group.Project.title
+        } : null
+      } : null,
+      submitter: submission.submitter ? {
+        id: submission.submitter.id,
+        username: submission.submitter.username
+      } : null
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: formattedSubmissions
+    });
+  } catch (error) {
+    console.error('Error fetching submissions for admin:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -1693,6 +1791,14 @@ app.get('/api/submissions/:submissionId/download', authenticateToken, async (req
 
     const user = await User.findByPk(userId);
 
+    // Admins can only download files with status "Reviewed"
+    if (user.isAdmin && submission.status !== 'Reviewed') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admins can only download files with status "Reviewed".'
+      });
+    }
+
     if (!isGroupMember &&
       submission.Task.Group.teamLeaderId !== userId &&
       !user.isAdmin) {
@@ -1725,13 +1831,21 @@ app.get('/api/submissions/:submissionId/download', authenticateToken, async (req
 
 
 
-// Start the server
+// Initialize the database and start the server
 const startServer = async () => {
-  await initializeDatabase();
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+  try {
+      // Sync the database without altering existing constraints
+      await sequelize.sync({ alter: false });
+      console.log('Database synced successfully.');
+
+      // Start the server
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+          console.log(`Server is running on ${PORT}`);
+      });
+  } catch (error) {
+      console.error('Error initializing the database:', error);
+  }
 };
 
 startServer();

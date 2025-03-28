@@ -479,112 +479,7 @@
             text-transform: uppercase;
         }
 
-        .files-container {
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            padding: 20px;
-            margin-bottom: 25px;
-        }
 
-        .files-container h2 {
-            font-size: 20px;
-            margin-bottom: 15px;
-            color: #2c3e50;
-            font-weight: 600;
-        }
-
-        .files-table {
-            width: 100%;
-            border-collapse: collapse;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .files-table th,
-        .files-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eaeaea;
-        }
-
-        .files-table th {
-            background-color: #2980b9;
-            color: white;
-            font-weight: 500;
-        }
-
-        .files-table tr:hover {
-            background-color: #f9f9f9;
-        }
-
-        .files-table td {
-            color: #333;
-            font-size: 14px;
-        }
-
-        .files-table .status {
-            font-weight: 500;
-            border-radius: 4px;
-            padding: 5px 10px;
-            display: inline-block;
-            text-align: center;
-        }
-
-        .files-table .status.submitted {
-            background-color: #e8f6f3;
-            color: #27ae60;
-        }
-
-        .files-table .status.pending {
-            background-color: #fef5e7;
-            color: #f39c12;
-        }
-
-        .files-table .status.late {
-            background-color: #fdedec;
-            color: #e74c3c;
-        }
-
-        .files-table .status.reviewed {
-            background-color: #eaf2f8;
-            color: #3498db;
-        }
-
-        .file-link {
-            color: #2980b9;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            font-weight: 500;
-        }
-
-        .file-link:hover {
-            text-decoration: underline;
-        }
-
-        .file-link i {
-            margin-right: 5px;
-        }
-
-        .upload-new {
-            background-color: #2980b9;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 10px 15px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: background-color 0.3s;
-        }
-
-        .upload-new:hover {
-            background-color: #1a5276;
-        }
 
         /* Status Colors */
         .status-pending {
@@ -645,27 +540,40 @@
             background: #c0392b;
         }
 
-        #submit-file-btn {
+        .files-container {
+            margin-top: 30px;
+        }
+
+        .files-container h2 {
+            color: #2980b9;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        table th {
             background-color: #2980b9;
             color: white;
         }
 
-        #submit-file-btn:hover {
-            background-color: #39a0e4;
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
         }
 
-        #cancel-file-upload-btn {
-            background-color: #e74c3c;
-            color: white;
-        }
-
-        #cancel-file-upload-btn:hover {
-            background-color: #c0392b;
-        }
-
-        .late-text {
-            color: #e74c3c;
-            font-weight: bold;
+        table tr:hover {
+            background-color: #ddd;
         }
 
         @media (max-width: 768px) {
@@ -695,16 +603,7 @@
                 margin-top: 15px;
             }
 
-            .files-table {
-                display: block;
-                overflow-x: auto;
-            }
 
-            .files-table th,
-            .files-table td {
-                padding: 10px;
-                font-size: 13px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -740,28 +639,7 @@
                 font-size: 13px;
             }
 
-            .files-table {
-                display: block;
-                overflow-x: auto;
-            }
 
-            .files-table th,
-            .files-table td {
-                padding: 10px;
-                font-size: 13px;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .files-container h2 {
-                font-size: 18px;
-            }
-
-            .files-table th,
-            .files-table td {
-                padding: 8px;
-                font-size: 12px;
-            }
         }
     </style>
 </head>
@@ -894,22 +772,22 @@
             </div>
 
 
+
             <h1>Shared Files</h1>
 
             <div class="files-container">
                 <h2>My Shared Files</h2>
-                <table class="files-table">
+                <!-- My Submissions Table -->
+                <table id="my-shared-files-table">
                     <thead>
                         <tr>
                             <th>Task</th>
-                            <th>Shared File</th>
-                            <th>Deadline</th>
+                            <th>File</th>
+                            <th>Due Date</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="my-shared-files-body">
-                        <!-- Dynamic data will be inserted here -->
-                    </tbody>
+                    <tbody id="my-shared-files-body"></tbody>
                 </table>
                 <button class="upload-new">
                     <i class="fas fa-upload"></i>
@@ -919,21 +797,23 @@
 
             <div class="files-container">
                 <h2>Group Shared Files</h2>
-                <table class="files-table">
+                <!-- Group Submissions Table -->
+                <table id="group-shared-files-table">
                     <thead>
                         <tr>
-                            <th>Student</th>
                             <th>Task</th>
-                            <th>Shared File</th>
-                            <th>Deadline</th>
+                            <th>File</th>
+                            <th>Due Date</th>
+                            <th>Submitted By</th>
                             <th>Status</th>
                         </tr>
                     </thead>
-                    <tbody id="group-shared-files-body">
-                        <!-- Dynamic data will be inserted here -->
-                    </tbody>
+                    <tbody id="group-shared-files-body"></tbody>
                 </table>
             </div>
+
+
+
 
         </section>
 
@@ -942,27 +822,20 @@
 
     </main>
 
-    <!-- File Submission Modal -->
     <div id="file-upload-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal" id="close-file-upload-modal">&times;</span>
-            <h2>Submit File</h2>
+            <h2>Upload File</h2>
             <form id="file-upload-form">
                 <div class="form-group">
                     <label for="task-select">Select Task</label>
                     <select id="task-select" name="taskId" required>
                         <option value="" disabled selected>Select a task</option>
-                        <!-- Tasks will be dynamically populated here -->
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="file-input">Upload File</label>
-                    <input type="file" id="file-input" name="file" accept=".txt,.pdf" required>
-                    <small class="file-hint">Only .txt and .pdf files are allowed.</small>
-                </div>
-                <div class="form-group">
-                    <label for="comments">Comments (Optional)</label>
-                    <textarea id="comments" name="comments" rows="4" placeholder="Add any comments..."></textarea>
+                    <label for="file-input">Choose File</label>
+                    <input type="file" id="file-input" name="file" required />
                 </div>
                 <div class="form-actions">
                     <button type="submit" id="submit-file-btn">Submit</button>
@@ -971,6 +844,7 @@
             </form>
         </div>
     </div>
+
 
     <script>
 
@@ -1374,6 +1248,8 @@
             const closeModalBtn = document.getElementById('close-modal');
             const cancelTaskBtn = document.getElementById('cancel-task-btn');
             const taskForm = document.getElementById('task-form');
+            const dueDateField = document.getElementById('due-date');
+
 
             // Populate status options
             const statusSelect = document.getElementById('task-status');
@@ -1381,8 +1257,20 @@
         <option value="not-started">Not Started</option>
         <option value="in_progress">In Progress</option>
         <option value="completed">Completed</option>
+        
     `;
-
+            // Add event listener to the status dropdown
+            statusSelect.addEventListener('change', () => {
+                if (statusSelect.value === 'completed') {
+                    // Hide the due date field when status is "Completed"
+                    dueDateField.style.display = 'block';
+                    dueDateInput.removeAttribute('required');
+                } else {
+                    // Show the due date field for other statuses
+                    dueDateField.style.display = 'block';
+                    dueDateInput.setAttribute('required', 'required');
+                }
+            });
             // Open modal for adding a new task
             addTaskBtn.addEventListener('click', () => {
                 document.getElementById('modal-title').textContent = 'Add New Task';
@@ -1414,17 +1302,22 @@
                 const taskTitle = document.getElementById('task-title').value;
                 const taskDesc = document.getElementById('task-desc').value;
                 const assignedMember = document.getElementById('assigned-member').value;
-                const dueDate = document.getElementById('due-date').value;
                 const taskStatus = document.getElementById('task-status').value;
 
-                // Validate due date
-                const selectedDate = new Date(dueDate);
-                const currentDate = new Date();
-                currentDate.setHours(0, 0, 0, 0); // Set time to midnight for comparison
 
-                if (selectedDate < currentDate) {
-                    showNotification('Due date cannot be in the past. Please select a valid date.', 'error');
-                    return;
+                // Only include due date if the status is not "Completed"
+                const dueDate = taskStatus === 'completed' ? null : document.getElementById('due-date').value;
+
+                // Validate due date only if the status is not "Completed"
+                if (taskStatus !== 'completed') {
+                    const selectedDate = new Date(dueDate);
+                    const currentDate = new Date();
+                    currentDate.setHours(0, 0, 0, 0); // Set time to midnight for comparison
+
+                    if (selectedDate < currentDate) {
+                        showNotification('Due date cannot be in the past. Please select a valid date.', 'error');
+                        return;
+                    }
                 }
 
                 try {
@@ -1579,6 +1472,11 @@
             tomorrow.setDate(tomorrow.getDate() + 1);
             const formattedDate = tomorrow.toISOString().split('T')[0];
             document.getElementById('due-date').value = formattedDate;
+
+            // Ensure the due date field is visible and required
+            const dueDateField = dueDateInput.parentElement;
+            dueDateField.style.display = 'block';
+            dueDateInput.setAttribute('required', 'required');
         }
 
         function updateAssignedMemberOptions(groupDetails) {
@@ -1662,7 +1560,7 @@
 
                         // Check if the submission is late
                         const submissionDate = new Date(submission.submissionTime);
-                        const dueDate = new Date(submission.deadline);
+                        const dueDate = new Date(submission.dueDate);
                         const isLate = submissionDate > dueDate;
 
                         // Update the status to include "late" if applicable
@@ -1680,7 +1578,7 @@
                     </td>
                     <td>${dueDate.toLocaleDateString()}</td>
                     <td>
-                        <span class="status ${submission.status.toLowerCase()}">${statusText} <span class="late-text">(late)</span></span>
+                        <span class="status ${submission.status.toLowerCase()}">${statusText}</span>
                     </td>
                 `;
 
@@ -1804,6 +1702,62 @@
                 alert(`Error: ${error.message}`);
             }
         });
+
+
+        // Load user submissions
+        async function loadUserSubmissions(projectId, token) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/projects/${projectId}/submissions`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch submissions');
+                }
+
+                const result = await response.json();
+
+                if (result.success && result.submissions) {
+                    const submissionsBody = document.getElementById('my-shared-files-body');
+                    submissionsBody.innerHTML = ''; // Clear existing rows
+
+                    result.submissions.forEach(submission => {
+                        const row = document.createElement('tr');
+
+                        const submissionDate = new Date(submission.submissionTime);
+                        const dueDate = new Date(submission.dueDate);
+                        const isLate = submissionDate > dueDate;
+
+                        let statusText = submission.status;
+                        if (isLate) {
+                            statusText += '<span class="late-text">(late)</span>';
+                        }
+
+                        row.innerHTML = `
+                    <td>${submission.task}</td>
+                    <td>
+                        <a href="/uploads/${submission.sharedFile}" class="file-link" target="_blank">
+                            <i class="fas fa-file"></i> ${submission.sharedFile}
+                        </a>
+                    </td>
+                    <td>${dueDate.toLocaleDateString()}</td>
+                    <td>
+                        <span class="status ${submission.status.toLowerCase()}">${statusText}</span>
+                    </td>
+                `;
+
+                        submissionsBody.appendChild(row);
+                    });
+                } else {
+                    document.getElementById('my-shared-files-body').innerHTML = '<tr><td colspan="4">No submissions found</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+                document.getElementById('my-shared-files-body').innerHTML = '<tr><td colspan="4">Failed to load submissions</td></tr>';
+            }
+        }
 
 
         async function loadGroupSubmissions(projectId, groupId, token) {

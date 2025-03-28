@@ -366,14 +366,14 @@
                 </button>
                 <div class="sidebar-user">
                     <div class="sidebar-user-icon">👨‍🎓</div>
-                    <div class="sidebar-user-name">Emily Johnson</div>
+                    <div class="sidebar-user-name" id="user-name">[User Name]</div>
                 </div>
                 <div class="sidebar-nav">
                     <a href="#" class="sidebar-nav-link active">
                         <i class="fas fa-project-diagram"></i>
                         <span>Project Details</span>
                     </a>
-                    
+
                     <a href="./Chat.html" class="sidebar-nav-link">
                         <i class="fas fa-comments"></i>
                         <span>Group Chat</span>
@@ -440,36 +440,36 @@
 
 
                 // Fetch user info to display name
-                fetchUserInfo();
+                loadUserInfo();
 
                 // Fetch and display projects
                 fetchProjects();
             });
 
-            // Function to fetch user info
-            async function fetchUserInfo() {
+            // Function to fetch and display user info
+            async function loadUserInfo(token) {
                 try {
                     const response = await fetch('http://localhost:5000/api/user', {
-                        method: 'GET',
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                            'Content-Type': 'application/json'
+                            'Authorization': `Bearer ${token}`
                         }
                     });
 
-                    const result = await response.json();
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch user information');
+                    }
 
-                    if (result.success && result.data) {
-                        // Update the sidebar username
-                        const sidebarUserName = document.querySelector('.sidebar-user-name');
-                        if (sidebarUserName) {
-                            sidebarUserName.textContent = result.data.username;
-                        } else {
-                            console.error("Sidebar username element not found");
-                        }
+                    const userData = await response.json();
+
+                    // Update user name in the sidebar
+                    if (userData.success && userData.data) {
+                        document.getElementById('user-name').textContent = userData.data.username;
+                    } else {
+                        document.getElementById('user-name').textContent = 'User';
                     }
                 } catch (error) {
-                    console.error('Error fetching user info:', error);
+                    console.error('Error loading user info:', error);
+                    document.getElementById('user-name').textContent = 'User';
                 }
             }
 

@@ -329,8 +329,8 @@
                     <i class="fas fa-chevron-left" id="toggle-icon"></i>
                 </button>
                 <div class="sidebar-user">
-                    <div class="sidebar-user-icon">👨🎓</div>
-                    <div class="sidebar-user-name">Emily Johnson</div>
+                    <div class="sidebar-user-icon">👨‍🎓</div>
+                    <div class="sidebar-user-name" id="user-name">[User Name]</div>
                 </div>
                 <div class="sidebar-nav">
                     <a href="./ProjectList.html" class="sidebar-nav-link">
@@ -362,32 +362,16 @@
         <section>
             <h1>Group Chat</h1>
 
+            <div class="group-selection-container">
+                <label for="group-select">Select Group:</label>
+                <select id="group-select">
+                    <option value="">-- Select a Group --</option>
+                </select>
+            </div>
+
             <div class="chat-container">
                 <div class="messages-container" id="messages-container">
-                    <!-- Sample Messages -->
-                    <div class="message-card">
-                        <div class="message-header">
-                            <span class="message-sender">Alex Chen</span>
-                            <span class="message-time">10:15 AM</span>
-                        </div>
-                        <p class="message-content">Let's schedule a meeting to review the API documentation.</p>
-                    </div>
-
-                    <div class="message-card current-user">
-                        <div class="message-header">
-                            <span class="message-sender">You</span>
-                            <span class="message-time">10:17 AM</span>
-                        </div>
-                        <p class="message-content">How about tomorrow at 2 PM?</p>
-                    </div>
-
-                    <div class="message-card">
-                        <div class="message-header">
-                            <span class="message-sender">Maria Gonzalez</span>
-                            <span class="message-time">10:18 AM</span>
-                        </div>
-                        <p class="message-content">That works for me. Should we invite the client?</p>
-                    </div>
+                    <!-- Messages will be dynamically populated -->
                 </div>
 
                 <div class="chat-input-container">
@@ -403,32 +387,145 @@
 
     <script>
 
-        // API Base URL - using your port 5000
-        const API_BASE_URL = 'http://localhost:5000';
-
-        // Main JavaScript file for frontend integration with backend API
-        document.addEventListener('DOMContentLoaded', function () {
-            // Check if user is logged in (token exists)
+        document.addEventListener('DOMContentLoaded', async () => {
+            const API_BASE_URL = 'http://localhost:5000';
             const token = localStorage.getItem('token');
+
             if (!token) {
                 window.location.href = '../../authentication/LoginPage.html'; // Redirect to login if no token
                 return;
             }
+            const groupSelect = document.getElementById('group-select');
+            const messagesContainer = document.getElementById('messages-container');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            let currentGroupId = null;
 
-            // Set up logout button using class selector
-            const logoutBtn = document.querySelector('.sidebar-logout-button');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', function () {
-                    localStorage.removeItem('token');
-                    window.location.href = '../../authentication/LoginPage.html';
-                });
-            } else {
-                console.error("Logout button not found in the HTML");
+            // Function to fetch user's groups
+            async function fetchUserGroups() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/user/groups`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch groups');
+                    }
+
+                    const data = await response.json();
+
+                    // Populate group select dropdown
+                    data.data.forEach(group => {
+                        const option = document.createElement('option');
+                        option.value = group.id;
+                        option.textContent = group.name;
+                        groupSelect.appendChild(option);
+                    });
+                } catch (error) {
+                    console.error('Error fetching groups:', error);
+                    alert('Could not load groups. Please try again.');
+                }
             }
 
+            // Function to fetch messages for a specific group
+            async function fetchGroupMessages(groupId, before = null) {
+                try {
+                    let url = `${API_BASE_URL}/api/groups/${groupId}/messages`;
+                    if (before) {
+                        url += `?before=${before}`;
+                    }
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch messages');
+                    }
+
+                    const data = await response.json();
+                    return data.data.reverse(); // Reverse to show oldest first
+                } catch (error) {
+                    console.error('Error fetching messages:', error);
+                    return [];
+                }
+            }
+
+            // Function to send a message
+            async function sendMessage() {
+                const content = messageInput.value.trim();
+                if (!content || !currentGroupId) return;
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/groups/${currentGroupId}/messages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({ content })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to send message');
+                    }
+
+                    const data = await response.json();
+                    renderMessage(data.data);
+                    messageInput.value = ''; // Clear input after sending
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Could not send message. Please try again.');
+                }
+            }
+
+            // Function to render a single message
+            function renderMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                messageElement.innerHTML = `
+            <strong>${message.sender.username}</strong>
+            <p>${message.content}</p>
+            <small>${new Date(message.timestamp).toLocaleString()}</small>
+        `;
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Event listener for group selection
+            groupSelect.addEventListener('change', async (e) => {
+                currentGroupId = e.target.value;
+                messagesContainer.innerHTML = ''; // Clear previous messages
+
+                if (currentGroupId) {
+                    const messages = await fetchGroupMessages(currentGroupId);
+                    messages.forEach(renderMessage);
+                }
+            });
+
+            // Event listener for send button
+            sendButton.addEventListener('click', sendMessage);
+
+            // Allow sending message with Enter key
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Initial load of user groups
+            fetchUserGroups();
 
 
         });
+
 
 
 

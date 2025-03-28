@@ -624,7 +624,7 @@
                 }
 
                 // Fetch projects from the backend
-                const response = await fetch(`${API_BASE_URL}/api/projects`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/projects`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -673,11 +673,10 @@
         };
 
         /**
- * Fetches groups associated with a project.
- * @param {string} projectId - ID of the selected project.
- * @returns {Promise<Array>} - Array of group objects.
- */
-        // Function to fetch groups for a project
+  * Fetches groups associated with a project.
+  * @param {string} projectId - ID of the selected project.
+  * @returns {Promise<Array>} - Array of group objects.
+  */
         const fetchGroupsForProject = async (projectId) => {
             try {
                 const token = localStorage.getItem('token');
@@ -975,15 +974,15 @@
                         'Content-Type': 'application/json',
                     },
                 });
-        
+
                 if (!response.ok) {
                     throw new Error('Failed to fetch notifications history');
                 }
-        
+
                 const data = await response.json();
                 const notificationsTableBody = document.getElementById('notifications-table-body');
                 notificationsTableBody.innerHTML = '';
-        
+
                 if (data.count === 0) {
                     notificationsTableBody.innerHTML = `
                         <tr>
@@ -994,10 +993,10 @@
                     `;
                     return;
                 }
-        
+
                 data.data.forEach((notification) => {
                     const row = document.createElement('tr');
-        
+
                     // Format the date
                     const formattedDate = new Date(notification.createdAt).toLocaleString('en-US', {
                         year: 'numeric',
@@ -1006,18 +1005,18 @@
                         hour: '2-digit',
                         minute: '2-digit',
                     });
-        
+
                     // Handle Recipient
                     const recipientName = notification.Recipient
                         ? notification.Recipient.username
                         : 'N/A';
-        
+
                     row.innerHTML = `
                         <td>${formattedDate}</td>
                         <td>${notification.message}</td>
                         <td>${recipientName}</td>
                     `;
-        
+
                     notificationsTableBody.appendChild(row);
                 });
             } catch (error) {
