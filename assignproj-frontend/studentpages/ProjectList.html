@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Project Details</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f0f7ff;
+            overflow-x: hidden;
+        }
+
+        main {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2980b9;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 20px 10px;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sidebar-user {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+
+        .sidebar-user-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-user-name {
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            min-width: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .sidebar-nav-link span {
+            font-size: 14px;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav-link.active {
+            background-color: #1a5276;
+        }
+
+        .sidebar-logout {
+            margin-top: auto;
+        }
+
+        .sidebar-logout-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logout-button i {
+            margin-right: 8px;
+        }
+
+
+        .sidebar-logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar.collapsed .sidebar-user-name,
+        .sidebar.collapsed .sidebar-nav-link span,
+        .sidebar.collapsed .sidebar-logout-button span {
+            display: none;
+        }
+
+        section {
+            flex: 1;
+            padding: 25px 30px;
+            margin-left: 20px;
+            max-width: calc(100% - 270px);
+            position: relative;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .projects-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .project-item {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto auto;
+            grid-template-areas:
+                "header status"
+                "description description"
+                "team deadline";
+            gap: 12px;
+            width: 100%;
+        }
+
+        .project-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .project-header {
+            grid-area: header;
+        }
+
+        .project-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .project-status {
+            grid-area: status;
+            font-size: 14px;
+            padding: 6px 16px;
+            border-radius: 20px;
+            text-align: center;
+            display: inline-block;
+            font-weight: 500;
+        }
+
+        .submitted {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .pending {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .reviewed {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .project-description {
+            grid-area: description;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .progress-container {
+            grid-area: description;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-grow: 1;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #2980b9;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .project-team {
+            grid-area: team;
+            display: flex;
+            align-items: center;
+        }
+
+        .team-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background: #2980b9;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .project-deadline {
+            grid-area: deadline;
+            font-size: 14px;
+            color: #e74c3c;
+            font-weight: 500;
+            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .projects-container {
+                grid-template-columns: 1fr;
+            }
+
+            .create-new-project {
+                width: 100%;
+                justify-content: center;
+                margin-top: 10px;
+            }
+
+
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                z-index: 1000;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            section {
+                width: 100%;
+                padding: 20px;
+                margin-left: 0;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-top: 15px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main>
+        <nav>
+            <div class="sidebar" id="sidebar">
+                <button class="toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <div class="sidebar-user">
+                    <div class="sidebar-user-icon">👨‍🎓</div>
+                    <div class="sidebar-user-name" id="user-name">[User Name]</div>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="#" class="sidebar-nav-link active">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Project Details</span>
+                    </a>
+
+                    <a href="./Chat.html" class="sidebar-nav-link">
+                        <i class="fas fa-comments"></i>
+                        <span>Group Chat</span>
+                    </a>
+                    <a href="./Notifications.html" class="sidebar-nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </div>
+                <div class="sidebar-logout">
+                    <button class="sidebar-logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+
+        <section>
+            <div class="projects-container" id="projects-main-container">
+                <div class="project-item" onclick="window.location='#'" id="project-item-template">
+                    <div class="project-header">
+                        <h3 class="project-title" id="project-title"></h3>
+                    </div>
+
+                    <div class="project-description">
+                        <p id="project-description"></p>
+                    </div>
+                    <div class="project-team" id="project-team-container">
+                        <!-- Team avatars will be dynamically added here -->
+                    </div>
+                    <span class="project-deadline" id="project-deadline"></span>
+                </div>
+            </div>
+        </section>
+
+
+        <script>
+
+            // Main JavaScript file for frontend integration with backend API
+            document.addEventListener('DOMContentLoaded', function () {
+                // Check if user is logged in (token exists)
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    window.location.href = '../../authentication/LoginPage.html'; // Redirect to login if no token
+                    return;
+                }
+
+                // Set up logout button using class selector
+                const logoutBtn = document.querySelector('.sidebar-logout-button');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', function () {
+                        localStorage.removeItem('token');
+                        window.location.href = '../../authentication/LoginPage.html';
+                    });
+                } else {
+                    console.error("Logout button not found in the HTML");
+                }
+
+
+                // Fetch user info to display name
+             loadUserInfo(token);
+
+                // Fetch and display projects
+                fetchProjects();
+            });
+
+            // Function to fetch and display user info
+            async function loadUserInfo(token) {
+                try {
+                    const response = await fetch('http://localhost:5000/api/user', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch user information');
+                    }
+
+                    const userData = await response.json();
+
+                    // Update user name in the sidebar
+                    if (userData.success && userData.data) {
+                        document.getElementById('user-name').textContent = userData.data.username;
+                    } else {
+                        document.getElementById('user-name').textContent = 'User';
+                    }
+                } catch (error) {
+                    console.error('Error loading user info:', error);
+                    document.getElementById('user-name').textContent = 'User';
+                }
+            }
+
+            // Function to fetch projects from API
+            async function fetchProjects() {
+                try {
+                    const response = await fetch('http://localhost:5000/api/projects', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        displayProjects(result.data);
+                    } else {
+                        console.error('Failed to fetch projects:', result.message);
+                        displayError('Failed to load projects. Please try again later.');
+                    }
+                } catch (error) {
+                    console.error('Error fetching projects:', error);
+                    displayError('Cannot connect to server. Please check your connection.');
+                }
+            }
+
+            // Function to display projects
+            function displayProjects(projects) {
+                const container = document.getElementById('projects-main-container');
+                container.innerHTML = ''; // Clear existing content
+
+                if (projects.length === 0) {
+                    container.innerHTML = '<p class="no-projects-message">No projects available.</p>';
+                    return;
+                }
+
+                // Create project cards
+                projects.forEach(project => {
+                    // Create project element
+                    const projectElement = document.createElement('div');
+                    projectElement.className = 'project-item';
+                    projectElement.id = `project-${project.id}`;
+                    projectElement.onclick = () => window.location.href = `./ProjectDetailsPage.html?id=${project.id}`;
+
+                    // Format deadline date
+                    const deadlineDate = new Date(project.deadline);
+                    const formattedDeadline = deadlineDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+
+                    // Set HTML content
+                    projectElement.innerHTML = `
+        <div class="project-header">
+            <h3 class="project-title">${project.title}</h3>
+        </div>
+        
+        <div class="project-description">
+            <p>${project.description}</p>
+        </div>
+        <div class="project-team" id="team-${project.id}">
+            <!-- Team members will be added here -->
+        </div>
+        <span class="project-deadline">${formattedDeadline}</span>
+        `;
+
+                    // Add to container
+                    container.appendChild(projectElement);
+
+                    // Fetch and display team members for this project
+                    fetchProjectTeam(project.id);
+                });
+            }
+
+            // Function to fetch team members for a project
+            async function fetchProjectTeam(projectId) {
+                console.log(`Fetching team for project ${projectId}`);
+                try {
+                    const response = await fetch(`http://localhost:5000/api/projects/${projectId}/groups`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log('Response status:', response.status);
+                    const result = await response.json();
+                    console.log('Team data:', result);
+
+                    if (result.success) {
+                        displayTeamMembers(projectId, result.data);
+                    } else {
+                        console.error('Failed to fetch team members:', result.message);
+                    }
+                } catch (error) {
+                    console.error('Error fetching team members:', error);
+                }
+            }
+
+            // Function to display team members
+            function displayTeamMembers(projectId, groups) {
+                console.log(`Displaying team members for project ${projectId}:`, groups);
+                const teamContainer = document.getElementById(`team-${projectId}`);
+                if (!teamContainer) {
+                    console.error(`Team container for project ${projectId} not found!`);
+                    return;
+                }
+
+                teamContainer.innerHTML = ''; // Clear existing content
+
+                // Process each group
+                groups.forEach(group => {
+                    // Add team leader
+                    if (group.teamLeader) {
+                        addTeamAvatar(teamContainer, group.teamLeader.username);
+                    }
+
+                    // Check for GroupMembers property (could be in different casings)
+                    const groupMembers = group.GroupMembers || group.groupMembers || [];
+
+                    if (Array.isArray(groupMembers) && groupMembers.length > 0) {
+                        groupMembers.forEach(member => {
+                            // Check if member has User property
+                            if (member.User) {
+                                addTeamAvatar(teamContainer, member.User.username);
+                            } else {
+                                // If member structure is different, try to get username directly
+                                const username = member.username || member.user?.username;
+                                if (username) {
+                                    addTeamAvatar(teamContainer, username);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Function to add team avatar
+            function addTeamAvatar(container, username) {
+                // Skip if username is missing or undefined
+                if (!username) {
+                    console.warn('Skipping avatar creation for undefined username');
+                    return;
+                }
+
+                // Check if this user avatar already exists to avoid duplicates
+                const existingAvatars = container.querySelectorAll('.team-avatar');
+                for (let i = 0; i < existingAvatars.length; i++) {
+                    if (existingAvatars[i].textContent === getInitials(username)) {
+                        return; // Skip if already added
+                    }
+                }
+
+                const avatar = document.createElement('div');
+                avatar.className = 'team-avatar';
+                avatar.textContent = getInitials(username);
+                container.appendChild(avatar);
+            }
+
+            // Helper function to get initials from username
+            function getInitials(username) {
+                if (!username) return '';
+                return username.split(' ')
+                    .map(name => name.charAt(0).toUpperCase())
+                    .join('');
+            }
+
+            // Function to display error message
+            function displayError(message) {
+                const container = document.getElementById('projects-main-container');
+                container.innerHTML = `<div class="error-message">${message}</div>`;
+            }
+            // Sidebar Toggle Functionality
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const toggleSidebar = document.getElementById('toggle-sidebar');
+            const toggleIcon = document.getElementById('toggle-icon');
+
+            // Mobile Menu Toggle
+            mobileMenuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+
+            // Desktop Collapse Toggle
+            const handleSidebarToggle = () => {
+                sidebar.classList.toggle('collapsed');
+
+                if (sidebar.classList.contains('collapsed')) {
+                    toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                    document.querySelector('section').style.marginLeft = '10px';
+                    document.querySelector('section').style.maxWidth = 'calc(100% - 70px)';
+                } else {
+                    toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                    document.querySelector('section').style.marginLeft = '20px';
+                    document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
+                }
+            };
+
+            // Window Resize Handler
+            const handleResize = () => {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('open');
+                    toggleSidebar.style.display = 'block';
+                } else {
+                    toggleSidebar.style.display = 'none';
+                }
+            };
+
+            // Event Listeners
+            toggleSidebar.addEventListener('click', handleSidebarToggle);
+            window.addEventListener('resize', handleResize);
+            document.addEventListener('DOMContentLoaded', handleResize);
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth <= 768 &&
+                    !sidebar.contains(e.target) &&
+                    e.target !== mobileMenuToggle &&
+                    sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                }
+            });
+        </script>
+</body>
+
+</html>

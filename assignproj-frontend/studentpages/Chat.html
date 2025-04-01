@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat - Project Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base Styles - Same as Previous Pages */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: #f0f7ff;
+            overflow-x: hidden;
+        }
+
+        main {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background-color: #2980b9;
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+            padding: 20px 10px;
+        }
+
+        .toggle-sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .sidebar-user {
+            text-align: center;
+            margin-bottom: 2em;
+        }
+
+        .sidebar-user-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-user-name {
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+        }
+
+        .sidebar-nav-link {
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .sidebar-nav-link i {
+            margin-right: 12px;
+            min-width: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .sidebar-nav-link span {
+            font-size: 14px;
+        }
+
+        .sidebar-nav-link:hover {
+            background-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .sidebar-nav-link.active {
+            background-color: #1a5276;
+        }
+
+        .sidebar-logout {
+            margin-top: auto;
+        }
+
+        .sidebar-logout-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-logout-button i {
+            margin-right: 8px;
+        }
+
+        .sidebar-logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        .sidebar.collapsed .sidebar-user-name,
+        .sidebar.collapsed .sidebar-nav-link span,
+        .sidebar.collapsed .sidebar-logout-button span {
+            display: none;
+        }
+
+        /* Main Content Styles */
+        section {
+            flex: 1;
+            padding: 25px 30px;
+            margin-left: 20px;
+            max-width: calc(100% - 270px);
+            position: relative;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            height: calc(100vh - 150px);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .message-card {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            max-width: 80%;
+            position: relative;
+        }
+
+
+
+
+        .message-card.current-user {
+            margin-left: auto;
+            margin-right: 0;
+            background-color: #e1f5fe;
+        }
+
+
+        .message-card.current-user .message-header {
+            flex-direction: row-reverse;
+        }
+
+        .message-card.current-user .message-sender {
+            color: #0277bd;
+        }
+
+        /* Optional: Add a subtle indicator for current user messages */
+        .message-card.current-user::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: -8px;
+            border-style: solid;
+            border-width: 8px 0 8px 8px;
+            border-color: transparent transparent transparent #e1f5fe;
+        }
+
+
+
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            color: #2980b9;
+            font-size: 14px;
+        }
+
+
+        .message-time {
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .message-content {
+            color: #2c3e50;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 2px solid #eee;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            min-height: 45px;
+        }
+
+        .send-button {
+            padding: 12px 25px;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-button:hover {
+            background-color: #1a5276;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 45px;
+            height: 45px;
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -250px;
+                z-index: 1000;
+            }
+
+            .sidebar.open {
+                left: 0;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            section {
+                width: 100%;
+                padding: 20px;
+                margin-left: 0;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-top: 15px;
+            }
+
+            .message-card {
+                max-width: 90%;
+            }
+
+            .chat-input-container {
+                flex-direction: column;
+            }
+
+            .send-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main>
+        <nav>
+            <div class="sidebar" id="sidebar">
+                <button class="toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <div class="sidebar-user">
+                    <div class="sidebar-user-icon">👨‍🎓</div>
+                    <div class="sidebar-user-name" id="user-name">[User Name]</div>
+                </div>
+                <div class="sidebar-nav">
+                    <a href="./ProjectList.html" class="sidebar-nav-link">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>Project Details</span>
+                    </a>
+                    <a href="#" class="sidebar-nav-link active">
+                        <i class="fas fa-comments"></i>
+                        <span>Group Chat</span>
+                    </a>
+                    <a href="./Notifications.html" class="sidebar-nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Notifications</span>
+                    </a>
+                </div>
+                <div class="sidebar-logout">
+                    <button class="sidebar-logout-button">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <section>
+            <h1>Group Chat</h1>
+
+            <div class="group-selection-container">
+                <label for="group-select">Select Group:</label>
+                <select id="group-select">
+                    <option value="">-- Select a Group --</option>
+                </select>
+            </div>
+
+            <div class="chat-container">
+                <div class="messages-container" id="messages-container">
+                    <!-- Messages will be dynamically populated -->
+                </div>
+
+                <div class="chat-input-container">
+                    <textarea class="chat-input" id="message-input" placeholder="Type your message..."></textarea>
+                    <button class="send-button" id="send-button">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Send</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+    <script>
+
+        const API_BASE_URL = 'http://localhost:5000';
+        let currentUser = null;
+        let selectedGroupId = null;
+
+        // Main initialization when DOM is loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is logged in (token exists)
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '../../authentication/LoginPage.html'; // Redirect to login if no token
+                return;
+            }
+
+            // Get DOM elements
+            const groupSelect = document.getElementById('group-select');
+            const messagesContainer = document.getElementById('messages-container');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+
+            // Set up logout button
+            const logoutBtn = document.querySelector('.sidebar-logout-button');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', logout);
+            } else {
+                console.error("Logout button not found in the HTML");
+            }
+
+            // Event listeners
+            groupSelect.addEventListener('change', (e) => {
+                selectedGroupId = e.target.value;
+                if (selectedGroupId) loadMessages(token, messagesContainer, selectedGroupId);
+            });
+
+            sendButton.addEventListener('click', () => sendMessage(token, messageInput, selectedGroupId));
+
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(token, messageInput, selectedGroupId);
+                }
+            });
+
+            // Initial load
+            await loadUserGroups(token, groupSelect);
+            await loadUserInfo(token);
+        });
+
+        // Function to fetch and display user info
+        async function loadUserInfo(token) {
+            try {
+                const response = await fetch('http://localhost:5000/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user information');
+                }
+
+                const userData = await response.json();
+
+                // Update user name in the sidebar
+                if (userData.success && userData.data) {
+                    document.getElementById('user-name').textContent = userData.data.username;
+                } else {
+                    document.getElementById('user-name').textContent = 'User';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                document.getElementById('user-name').textContent = 'User';
+            }
+        }
+        
+        // Create message element
+        function createMessageElement(content, isCurrentUser, sender, timestamp) {
+            const displayName = isCurrentUser ? 'You' : sender;
+            console.log(`Creating message element: displayName=${displayName}, content=${content}`); // Debugging log
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message-card ${isCurrentUser ? 'current-user' : ''}`;
+
+            const timeString = new Date(timestamp).toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+
+            messageDiv.innerHTML = `
+        <div class="message-header">
+            <span class="message-sender">${displayName}</span>
+            <span class="message-time">${timeString}</span>
+        </div>
+        <p class="message-content">${content}</p>
+    `;
+
+            return messageDiv;
+        }
+
+        // Load user's groups and populate dropdown
+        async function loadUserGroups(token, groupSelect) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/user/groups`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load groups');
+
+                const { data: groups } = await response.json();
+                groupSelect.innerHTML = '<option value="">-- Select a Group --</option>';
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.name;
+                    groupSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading groups:', error);
+                alert('Failed to load groups');
+            }
+        }
+
+        // Send message
+        async function sendMessage(token, messageInput, selectedGroupId) {
+            const messageText = messageInput.value.trim();
+            if (!messageText || !selectedGroupId) return;
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/api/groups/${selectedGroupId}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ content: messageText })
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to send message');
+
+                messageInput.value = '';
+                loadMessages(token, messagesContainer, selectedGroupId); // Refresh messages after sending
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        // Load messages for the selected group
+        async function loadMessages(token, messagesContainer, selectedGroupId) {
+            if (!selectedGroupId) return;
+
+            try {
+                // Clear previous messages
+                messagesContainer.innerHTML = '';
+
+                // Show loading indicator
+                messagesContainer.innerHTML = '<div class="loading">Loading messages...</div>';
+
+                // First, ensure we have the current user's information
+                if (!currentUser) {
+                    try {
+                        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        if (userResponse.ok) {
+                            const userData = await userResponse.json();
+                            currentUser = userData.data;
+                            
+                        } else {
+                            throw new Error('Failed to get user profile');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching user profile:', error);
+                    }
+                }
+
+                // Fetch messages from the API
+                const response = await fetch(
+                    `${API_BASE_URL}/api/groups/${selectedGroupId}/messages?limit=50`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to load messages');
+
+                const { success, data: messages } = await response.json();
+
+                if (!success) throw new Error('Failed to load messages');
+
+                // Clear loading indicator
+                messagesContainer.innerHTML = '';
+
+                // Display messages
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = '<div class="no-messages">No messages yet. Start the conversation!</div>';
+                } else {
+                    // Sort messages by timestamp (newest last)
+                    const sortedMessages = [...messages].sort((a, b) =>
+                        new Date(a.timestamp) - new Date(b.timestamp)
+                    );
+
+                    // Log data to help debug
+                    console.log('Current user:', currentUser);
+                    console.log('Messages:', sortedMessages);
+
+                    sortedMessages.forEach(message => {
+                        const isCurrentUser = currentUser && currentUser.id === message.senderId;
+                        console.log(`Message from ${message.sender.username}, isCurrentUser: ${isCurrentUser}`); // Debugging log
+
+                        const messageElement = createMessageElement(
+                            message.content,
+                            isCurrentUser,
+                            message.sender.username,
+                            message.timestamp
+                        );
+
+                        messagesContainer.appendChild(messageElement);
+                    });
+
+                    // Scroll to the bottom of the messages container
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                messagesContainer.innerHTML = '<div class="error">Failed to load messages. Please try again.</div>';
+            }
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '../../authentication/LoginPage.html';
+        }
+
+        
+
+
+
+
+
+
+        // Sidebar Toggle Functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const toggleSidebar = document.getElementById('toggle-sidebar');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        // Mobile Menu Toggle
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        // Desktop Collapse Toggle
+        const handleSidebarToggle = () => {
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.classList.replace('fa-chevron-left', 'fa-chevron-right');
+                document.querySelector('section').style.marginLeft = '10px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 70px)';
+            } else {
+                toggleIcon.classList.replace('fa-chevron-right', 'fa-chevron-left');
+                document.querySelector('section').style.marginLeft = '20px';
+                document.querySelector('section').style.maxWidth = 'calc(100% - 270px)';
+            }
+        };
+
+        // Window Resize Handler
+        const handleResize = () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                toggleSidebar.style.display = 'block';
+            } else {
+                toggleSidebar.style.display = 'none';
+            }
+        };
+
+        // Event Listeners
+        toggleSidebar.addEventListener('click', handleSidebarToggle);
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('DOMContentLoaded', handleResize);
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 &&
+                !sidebar.contains(e.target) &&
+                e.target !== mobileMenuToggle &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+
+    </script>
+</body>
+
+</html>
