@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: #f4f7fc;
+    color: #333;
+    overflow-x: hidden;
+}
+
+main {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background-color: #2c3e50;
+    color: white;
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+    padding: 20px 10px;
+}
+
+.toggle-sidebar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: none;
+}
+
+.sidebar-user {
+    text-align: center;
+    margin-bottom: 3em;
+}
+
+.sidebar-user-icon {
+    font-size: 40px;
+}
+
+.sidebar-user-name {
+    font-size: 18px;
+    margin-top: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-nav {
+    flex: 1;
+}
+
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.sidebar-nav-link i {
+    margin-right: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+.sidebar-nav-link span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-nav-link:hover {
+    background-color: #3498db;
+}
+
+.sidebar-nav-link.active {
+    background-color: #3498db;
+}
+
+.sidebar-logout {
+    margin-top: auto;
+}
+
+.sidebar-logout-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-logout-button i {
+    margin-right: 8px;
+}
+
+.sidebar-logout-button:hover {
+    background-color: #c0392b;
+}
+
+.sidebar.collapsed .sidebar-user-name,
+.sidebar.collapsed .sidebar-nav-link span,
+.sidebar.collapsed .sidebar-logout-button span {
+    display: none;
+}
+
+section {
+    flex: 1;
+    padding: 30px;
+    margin-left: 20px;
+    max-width: calc(100% - 270px);
+}
+
+h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.project-details {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+form input,
+form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+}
+
+form input:focus,
+form textarea:focus {
+    outline: none;
+    border: 2px solid #3498db;
+    background-color: #fff;
+}
+
+form textarea {
+    resize: none;
+    height: 120px;
+}
+
+.deadline-maxstudents {
+    display: flex;
+    gap: 20px;
+}
+
+.deadline-maxstudents .form-group {
+    flex: 1;
+}
+
+#create-groups {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+#create-groups:hover {
+    background-color: #0ef;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: -250px;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    section {
+        margin-left: 0;
+        max-width: 100%;
+    }
+
+    .deadline-maxstudents {
+        flex-direction: column;
+    }
+}
