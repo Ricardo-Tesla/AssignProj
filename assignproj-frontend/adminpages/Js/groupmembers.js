@@ -436,6 +436,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Proceed with advanced validation and group creation logic
             try {
                 const token = localStorage.getItem('token');
+                
+
+                const projectResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+    
+                if (!projectResponse.ok) {
+                    throw new Error('Failed to fetch project details');
+                }
+    
+                const projectData = await projectResponse.json();
+    
+                if (projectData.success && projectData.data) {
+                    const maxMembers = projectData.data.maxStudents;
+    
+                    // Check if the number of selected members exceeds the maximum allowed
+                    if (members.length > maxMembers) {
+                        alert(`The number of selected members (${members.length}) exceeds the maximum allowed for this project (${maxMembers}). Please reduce the number of members.`);
+                        return;
+                    }
+                } else {
+                    throw new Error('Failed to retrieve project details');
+                }
 
                 // Fetch existing groups in the project to check for duplicates
                 const groupsResponse = await fetch(`${API_BASE_URL}/api/projects/${projectId}/groups`, {

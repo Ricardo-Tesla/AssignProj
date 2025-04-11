@@ -1,26 +1,31 @@
 // API Base URL
 const API_BASE_URL = 'http://localhost:5000';
 
-// Function to fetch and display user info
 async function loadUserInfo(token) {
     try {
+        console.log('Fetching user info with token:', token);
+
         const response = await fetch(`${API_BASE_URL}/api/user`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
+        console.log('Response:', response);
+
         if (!response.ok) {
             throw new Error('Failed to fetch user information');
         }
 
         const userData = await response.json();
+        console.log('User Data:', userData);
 
         // Update user name in the sidebar
+        const userNameElement = document.querySelector('.sidebar-user-name');
         if (userData.success && userData.data) {
-            document.querySelector('.sidebar-user-name').textContent = userData.data.username;
+            userNameElement.textContent = userData.data.username;
         } else {
-            document.querySelector('.sidebar-user-name').textContent = 'User';
+            userNameElement.textContent = 'User';
         }
     } catch (error) {
         console.error('Error loading user info:', error);
